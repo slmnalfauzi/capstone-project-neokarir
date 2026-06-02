@@ -11,7 +11,7 @@ import idTranslations from '../../../locales/id';
 import enTranslations from '../../../locales/en';
 
 export const useProfileSettings = () => {
-  const { user, updateProfile, refreshUserProfile } = useAuth();
+  const { user, updateProfile, refreshUserProfile, logout } = useAuth();
   const { language, setLanguage } = useLanguage();
   const t = language === 'en' ? enTranslations : idTranslations;
 
@@ -103,6 +103,24 @@ export const useProfileSettings = () => {
     }
   }, [refreshUserProfile, toastSuccess, toastError, t, language]);
 
+  const [isDeletingAccount, setIsDeletingAccount] = useState(false);
+
+  const handleDeleteAccount = useCallback(async (password) => {
+    setIsDeletingAccount(true);
+    try {
+      await profileService.deleteAccount(password);
+      toastSuccess(language === 'en' ? 'Account successfully deleted.' : 'Akun berhasil dihapus.');
+      setTimeout(() => {
+        logout();
+      }, 500);
+    } catch (err) {
+      toastError(err.message || (language === 'en' ? 'Failed to delete account. Please check your password.' : 'Gagal menghapus akun. Silakan periksa password Anda.'));
+      throw err; // Re-throw so modal can stay open on error
+    } finally {
+      setIsDeletingAccount(false);
+    }
+  }, [toastSuccess, toastError, language, logout]);
+
   return {
     activeTab,
     setActiveTab,
@@ -131,5 +149,7 @@ export const useProfileSettings = () => {
     user,
     handleAvatarUpload,
     isUploadingAvatar,
+    isDeletingAccount,
+    handleDeleteAccount,
   };
 };

@@ -20,7 +20,7 @@ const en = {
     skillGap: "Skill Gap Analysis",
     recommendation: "Career Recommendation",
     cvAnalyzer: "CV Analyzer",
-    jobsMarket: "Jobs Market",
+    jobsMarket: "Job Trend",
     aiAssistant: "AI Assistant",
     settings: "Profile & Settings",
     support: "Support",
@@ -76,7 +76,7 @@ const en = {
   },
   career: {
     advisorInsightTitle: "NeoAI Career Advisor Insight",
-    advisorInsight: (education, experience, domain) => `Based on your onboarding profile (${education}, ${experience}) focusing on the field of <strong>${domain}</strong>, our top recommended jobs are listed below. Complete the courses on the *Roadmap* to directly fill your skill gaps and increase your job matching percentage!`,
+    advisorInsight: (education, experience, domain) => `Hello! 👋 Based on the in-depth AI Career Profiling analysis and Skill Gap calculation of your profile (Education: ${education}, Experience: ${experience}) in the ${domain} field, our AI has formulated the career recommendations with the highest match for you. Please follow the learning guide on the *Roadmap* to close the detected skill gaps and boost your career readiness score!`,
     detailTitle: "Detailed Career Recommendation",
     matchScore: "Job Match Score",
     matchScoreTitle: "Your Job Readiness Chart",
@@ -229,6 +229,7 @@ const en = {
     projectionDesc: (domain) => `Showing the estimated growth of ${domain} job vacancies in the coming months.`,
     estDemand: "Estimated Vacancies",
     vacanciesUnit: "vacancies",
+    monthPlus: (n) => `Month +${n}`,
     // insights
     rankingTitle: "IT Job Domain Demand Ranking",
     rankingDesc: "Ordering of IT expertise fields based on next month's active vacancy estimation.",

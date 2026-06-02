@@ -69,9 +69,8 @@ export const useSkillGapRecommendations = (targetJob, ownedSkills, radarChartDat
 
   // 3. Calculate learning path timeline courses
   const learningPath = courses.map(course => {
-    const stableId = ((course.skill || '') + '_' + (course.judul || '')).replace(/[^a-zA-Z0-9]/g, '_').toLowerCase();
     return {
-      id: stableId,
+      id: course.id || ((course.skill || '') + '_' + (course.judul || '')).replace(/[^a-zA-Z0-9]/g, '_').toLowerCase(),
       skill: course.skill,
       judul: course.judul,
       platform: course.platform,

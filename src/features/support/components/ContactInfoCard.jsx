@@ -22,8 +22,8 @@ const ContactInfoCard = () => {
             </div>
             <div>
               <p className="text-caption font-bold text-secondary-text  tracking-wider">{t.support.supportEmail}</p>
-              <a href="mailto:support@neokarir.ai" className="text-body-sm font-semibold text-primary-text hover:text-primary transition-colors">
-                support@neokarir.ai
+              <a href="https://mail.google.com/mail/?view=cm&fs=1&to=mfuture561@gmail.com" target="_blank" rel="noopener noreferrer" className="text-body-sm font-semibold text-primary-text hover:text-primary transition-colors">
+                mfuture561@gmail.com
               </a>
             </div>
           </div>

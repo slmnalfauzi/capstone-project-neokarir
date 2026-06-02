@@ -77,6 +77,12 @@ export const useSupport = () => {
     setTimeout(() => {
       setIsSubmitting(false);
       setSubmitSuccess(true);
+      
+      // Open Gmail compose window with form data
+      const subject = encodeURIComponent(`Support Request: ${contactForm.category}`);
+      const body = encodeURIComponent(`Name: ${contactForm.name}\nEmail: ${contactForm.email}\nCategory: ${contactForm.category}\n\nMessage:\n${contactForm.message}`);
+      window.open(`https://mail.google.com/mail/?view=cm&fs=1&to=mfuture561@gmail.com&su=${subject}&body=${body}`, '_blank');
+
       setContactForm({ name: '', email: '', category: 'question', message: '' });
 
       setTimeout(() => setSubmitSuccess(false), 5000);

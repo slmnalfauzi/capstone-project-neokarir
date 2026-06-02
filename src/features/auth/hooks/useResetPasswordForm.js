@@ -1,7 +1,9 @@
 import { useState, useEffect, useCallback } from 'react';
-import { useNavigate, useSearchParams } from 'react-router-dom';
+import { useNavigate } from 'react-router-dom';
 import { authService } from '../api/authService';
 import { useToast } from '../../../contexts/ToastContext';
+import { supabase } from '../../../config/supabase';
+import { USE_MOCK } from '../../../config/api';
 
 export const useResetPasswordForm = () => {
   const [form, setForm] = useState({ password: '', confirmPassword: '' });
@@ -12,25 +14,50 @@ export const useResetPasswordForm = () => {
   const [countdown, setCountdown] = useState(5);
   const { success, error } = useToast();
   const navigate = useNavigate();
-  const [searchParams] = useSearchParams();
-  const token = searchParams.get('token');
 
-  // Validasi token saat komponen dimount
+  // Validasi recovery session dari Supabase saat komponen dimount
   useEffect(() => {
-    const validateToken = async () => {
-      // Mock token validation - akan diganti dengan real API call nanti
-      await new Promise(resolve => setTimeout(resolve, 800));
+    let isMounted = true;
 
-      // Mock: token dianggap valid jika ada dan tidak kosong
-      if (token && token.trim().length > 0) {
-        setTokenValid(true);
-      } else {
-        setTokenValid(false);
+    const validateSession = async () => {
+      if (USE_MOCK) {
+        await new Promise((resolve) => setTimeout(resolve, 500));
+        if (isMounted) {
+          setTokenValid(true);
+        }
+        return;
       }
+
+      if (!supabase) {
+        if (isMounted) {
+          setTokenValid(false);
+        }
+        return;
+      }
+
+      const { data, error: sessionError } = await supabase.auth.getSession();
+
+      if (!isMounted) return;
+
+      if (sessionError) {
+        setTokenValid(false);
+        return;
+      }
+
+      if (data?.session?.access_token) {
+        setTokenValid(true);
+        return;
+      }
+
+      setTokenValid(false);
     };
 
-    validateToken();
-  }, [token]);
+    validateSession();
+
+    return () => {
+      isMounted = false;
+    };
+  }, []);
 
   // Countdown dan auto-redirect setelah reset berhasil
   useEffect(() => {
@@ -83,8 +110,11 @@ export const useResetPasswordForm = () => {
     setIsSubmitting(true);
 
     try {
-      const response = await authService.resetPassword(token, form.password);
+      const response = await authService.resetPassword(form.password);
       success(response.message || 'Kata sandi berhasil diperbarui. Mengalihkan ke halaman login...');
+      if (supabase) {
+        await supabase.auth.signOut({ scope: 'global' });
+      }
       setIsSuccess(true);
     } catch (err) {
       error(err.message || 'Gagal memperbarui kata sandi. Silakan coba kembali.');

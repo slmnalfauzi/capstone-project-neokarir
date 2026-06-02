@@ -1,65 +1,99 @@
 import { MASTER_JOBS } from '../data/recommendationData';
 
-export const useCareerMatchCalculator = (user, completedCourses) => {
-  const userOwnedSkills = user?.skills || ['React', 'JavaScript', 'HTML', 'CSS'];
+export const useCareerMatchCalculator = (user, completedCourses, jobsData = []) => {
+  const normalizeSkill = (s) => (s || '').toLowerCase().replace(/[^a-z0-9]/g, '');
+  const normalizeCourseId = (value) => (value || '').toString().trim().toLowerCase();
 
-  const normalizeSkill = (s) => s.toLowerCase().replace(/[^a-z0-9]/g, '');
-  const normalizedUserSkills = userOwnedSkills.map(normalizeSkill);
+  const isCompletedCourse = (courseId) => {
+    const normalizedCourseId = normalizeCourseId(courseId);
+    if (!normalizedCourseId || !Array.isArray(completedCourses)) return false;
+
+    return completedCourses.some((completedCourseId) => {
+      const normalizedCompletedCourseId = normalizeCourseId(completedCourseId);
+      return normalizedCompletedCourseId === normalizedCourseId
+        || normalizedCourseId.endsWith(`-${normalizedCompletedCourseId}`)
+        || normalizedCompletedCourseId.endsWith(`-${normalizedCourseId}`);
+    });
+  };
 
   const calculateMatches = () => {
-    return MASTER_JOBS.map(job => {
-      const matchedSkills = [];
-      const missingSkills = [];
+    const sourceData = jobsData.length > 0 ? jobsData : [];
+    return sourceData.map(job => {
+      // 1. Start with exact data from backend AI
+      const backendMatched = job.matchedSkills || job.matched_skills || [];
+      const backendMissing = job.missingSkills || job.missing_skills || [];
+      const baseScore = job.matchScore || 0;
+      
+      // 2. If no completed courses, just return the AI's data as-is
+      if (!completedCourses || completedCourses.length === 0) {
+        return {
+          ...job,
+          matchedSkills: backendMatched,
+          missingSkills: backendMissing,
+        };
+      }
 
-      const completedSkillsForJob = job.courses
-        .filter(course => completedCourses.includes(course.id))
-        .map(course => normalizeSkill(course.skill));
-
-      job.required_skills.forEach(skill => {
-        const normSkill = normalizeSkill(skill);
-        const isOwned = normalizedUserSkills.includes(normSkill) || completedSkillsForJob.includes(normSkill);
-        
-        if (isOwned) {
-          matchedSkills.push(skill);
-        } else {
-          missingSkills.push(skill);
+      // 3. If there are completed courses, dynamically augment the skills
+      // Look up what skills are covered by the completed courses
+      const completedSkillsForJob = [];
+      const allCourses = job.courses || job.learning_roadmap || [];
+      
+      allCourses.forEach(course => {
+        if (isCompletedCourse(course.id)) {
+          const skillTarget = course.skill || course.skillTarget || course.target_skill || course.skill_target || course.title;
+          if (skillTarget) {
+            completedSkillsForJob.push(skillTarget);
+          }
         }
       });
 
-      const skillMatchRatio = job.required_skills.length > 0 
-        ? matchedSkills.length / job.required_skills.length 
-        : 1;
-      let skillScore = skillMatchRatio * 80;
-
-      let expScore = 10;
-      const userExp = (user?.experience || 'Fresh Graduate').toLowerCase();
-      const jobExp = job.min_experience.toLowerCase();
-      if (jobExp.includes('3 tahun') && (userExp.includes('fresh') || userExp.includes('< 1'))) {
-        expScore = 4; 
-      } else if (jobExp.includes('1 - 3') && userExp.includes('fresh')) {
-        expScore = 7; 
+      if (completedSkillsForJob.length === 0) {
+        return {
+          ...job,
+          matchedSkills: backendMatched,
+          missingSkills: backendMissing,
+        };
       }
 
-      let eduScore = 10;
-      const userEdu = (user?.education || 'S1').toLowerCase();
-      const jobEdu = job.min_education.toLowerCase();
-      if (jobEdu.includes('s1') && (userEdu.includes('sma') || userEdu.includes('smk') || userEdu.includes('d3'))) {
-        eduScore = 5; 
-      } else if (jobEdu.includes('d3') && (userEdu.includes('sma') || userEdu.includes('smk'))) {
-        eduScore = 6;
-      }
+      const normCompletedSkills = completedSkillsForJob.map(normalizeSkill);
 
-      const totalMatchScore = Math.min(100, Math.round(skillScore + expScore + eduScore));
+      // Shift newly learned skills from missing to matched
+      const newMatched = [...backendMatched];
+      const newMissing = [];
+
+      backendMissing.forEach(skill => {
+        if (normCompletedSkills.includes(normalizeSkill(skill))) {
+          if (!newMatched.includes(skill)) {
+            newMatched.push(skill);
+          }
+        } else {
+          newMissing.push(skill);
+        }
+      });
+
+      // Recalculate skill breakdown based on new matches
+      const reqSkills = job.required_skills || [...newMatched, ...newMissing];
+      const totalReq = reqSkills.length > 0 ? reqSkills.length : 1;
+      const newSkillScore = Math.round((newMatched.length / totalReq) * 100);
+      
+      const baseSkillScore = job.matchBreakdown?.skills || Math.round((backendMatched.length / totalReq) * 100);
+      const diff = newSkillScore - baseSkillScore;
+      const roadmapCompletionPercentage = allCourses.length > 0
+        ? Math.round((allCourses.filter(course => isCompletedCourse(course.id)).length / allCourses.length) * 100)
+        : 0;
+      const roadmapBonus = Math.round((roadmapCompletionPercentage / 100) * 20);
+      
+      // Usually skills account for ~80% of the weight in AI calculation
+      const bumpedScore = Math.min(100, Math.round(baseScore + (diff * 0.8) + roadmapBonus));
 
       return {
         ...job,
-        matchScore: totalMatchScore,
-        matchedSkills,
-        missingSkills,
+        matchScore: bumpedScore,
+        matchedSkills: newMatched,
+        missingSkills: newMissing,
         matchBreakdown: {
-          skills: Math.round(skillMatchRatio * 100),
-          experience: expScore * 10,
-          education: eduScore * 10
+          ...(job.matchBreakdown || {}),
+          skills: newSkillScore
         }
       };
     });

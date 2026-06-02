@@ -1,11 +1,10 @@
-import React from 'react';
 import { X, Plus, BrainCog, Loader2, AlertTriangle } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import Card from '../../../components/ui/Card';
 import FormInput from '../../../components/ui/FormInput';
 import Button from '../../../components/ui/Button';
 import { BriefcaseBusiness, Target } from 'lucide-react';
-import { EDUCATION_LEVELS } from '../../onboarding/data/onboardingData';
+import { EDUCATION_LEVELS, IT_DOMAINS } from '../../onboarding/data/onboardingData';
 import { useLanguage } from '../../../contexts/LanguageContext';
 
 const CareerSkillsTab = ({
@@ -74,6 +73,31 @@ const CareerSkillsTab = ({
             value={careerInfo.targetRole}
             onChange={(e) => updateCareerInfo('targetRole', e.target.value)}
           />
+
+          {/* Target Domain select */}
+          <div className="flex flex-col gap-1.5">
+            <label
+              htmlFor="career-target-domain"
+              className="text-sm font-semibold text-primary-text"
+            >
+              Target Domain
+            </label>
+            <select
+              id="career-target-domain"
+              value={careerInfo.targetDomain}
+              onChange={(e) => updateCareerInfo('targetDomain', e.target.value)}
+              className="
+                w-full rounded-xl border bg-white px-4 py-3 text-sm text-primary-text
+                transition-all duration-200 outline-none appearance-none cursor-pointer
+                border-border hover:border-primary/30 focus:border-primary focus:ring-2 focus:ring-primary/10
+              "
+            >
+              <option value="" disabled>Pilih Target Domain</option>
+              {IT_DOMAINS.map(domain => (
+                <option key={domain} value={domain}>{domain}</option>
+              ))}
+            </select>
+          </div>
 
           {/* Experience Level select */}
           <div className="flex flex-col gap-1.5">

@@ -1,17 +1,46 @@
 import { useState, useEffect } from 'react';
+import { useLocation } from 'react-router-dom';
 import { useAuth } from '../../../contexts/AuthContext';
 import { useCareerRecommendations } from '../../career-recommendation/hooks/useCareerRecommendations';
 import { useSkillGap } from '../../skill-gap-analysis/hooks/useSkillGap';
 
 export const useAIProfiling = () => {
-  const { user } = useAuth();
+  const { user, completeOnboarding, refreshUserProfile } = useAuth();
+  const location = useLocation();
+  const pendingProfileData = location.state?.pendingProfileData;
+
+  const [isSubmittingProfile, setIsSubmittingProfile] = useState(!!pendingProfileData);
   const [isProcessing, setIsProcessing] = useState(true);
   const [progress, setProgress] = useState(0);
-  const [processingStatus, setProcessingStatus] = useState('Membaca data profile...');
+  const [processingStatus, setProcessingStatus] = useState(
+    pendingProfileData ? 'Menyimpan profil baru Anda...' : 'Membaca data profile...'
+  );
 
   const { recommendations, overallReadiness: defaultOverallReadiness } = useCareerRecommendations();
   const { radarData, learningPath, heroData } = useSkillGap();
   const [profileScore, setProfileScore] = useState(null);
+
+  // Submit profile settings if they were passed from onboarding page
+  useEffect(() => {
+    const submitPending = async () => {
+      if (!pendingProfileData) return;
+      try {
+        setProcessingStatus('Menyimpan profil baru Anda...');
+        const { profileService } = await import('../../profile-settings/api/profileService');
+        await profileService.updateProfile(pendingProfileData);
+        
+        setProcessingStatus('Menganalisis karier dengan AI...');
+        completeOnboarding(pendingProfileData);
+        await refreshUserProfile();
+      } catch (err) {
+        console.error("Failed to submit pending profile", err);
+      } finally {
+        setIsSubmittingProfile(false);
+      }
+    };
+    
+    submitPending();
+  }, [pendingProfileData]);
 
   useEffect(() => {
     const fetchProfileScore = async () => {
@@ -26,10 +55,10 @@ export const useAIProfiling = () => {
       }
     };
     
-    if (user) {
+    if (user && !isSubmittingProfile) {
       fetchProfileScore();
     }
-  }, [user]);
+  }, [user, isSubmittingProfile]);
 
   useEffect(() => {
     // Mock processing sequence
@@ -45,12 +74,19 @@ export const useAIProfiling = () => {
       
       if (currentProgress >= 100) {
         clearInterval(interval);
-        setTimeout(() => setIsProcessing(false), 500);
       }
     }, 60); // Total ~3 seconds
 
     return () => clearInterval(interval);
   }, []);
+
+  // Control isProcessing completion
+  useEffect(() => {
+    if (progress >= 100 && !isSubmittingProfile) {
+      const timer = setTimeout(() => setIsProcessing(false), 500);
+      return () => clearTimeout(timer);
+    }
+  }, [progress, isSubmittingProfile]);
 
   // Map recommendations to the topCareers format (limit to max 2 items)
   const topCareers = recommendations.slice(0, 2).map(rec => ({

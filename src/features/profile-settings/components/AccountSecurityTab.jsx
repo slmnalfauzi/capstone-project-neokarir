@@ -1,12 +1,32 @@
-import React from 'react';
-import { Save, CheckCircle, Loader2, Monitor, Smartphone, LogOut, AlertTriangle } from 'lucide-react';
+import React, { useState } from 'react';
+import { Save, CheckCircle, Loader2, LogOut, AlertTriangle, X } from 'lucide-react';
+import { motion, AnimatePresence } from 'framer-motion';
 import Card from '../../../components/ui/Card';
 import PasswordInput from '../../../components/ui/PasswordInput';
 import Button from '../../../components/ui/Button';
 import { useLanguage } from '../../../contexts/LanguageContext';
 
-const AccountSecurityTab = ({ security, updateSecurity, removeSession, onSave, isSaving, saveSuccess }) => {
+const AccountSecurityTab = ({ security, updateSecurity, removeSession, onSave, isSaving, saveSuccess, isDeletingAccount, handleDeleteAccount }) => {
   const { t } = useLanguage();
+  const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
+  const [deletePassword, setDeletePassword] = useState('');
+
+  const onConfirmDelete = async () => {
+    if (!deletePassword) return;
+    try {
+      await handleDeleteAccount(deletePassword);
+      setIsDeleteModalOpen(false);
+      setDeletePassword('');
+    } catch (error) {
+      // Error handled by the hook
+    }
+  };
+
+  const closeDeleteModal = () => {
+    setIsDeleteModalOpen(false);
+    setDeletePassword('');
+  };
+
   return (
     <div
       role="tabpanel"
@@ -98,12 +118,83 @@ const AccountSecurityTab = ({ security, updateSecurity, removeSession, onSave, i
             <Button
               variant="outline"
               className="!border-error !text-error hover:!bg-error-light"
+              onClick={() => setIsDeleteModalOpen(true)}
             >
               {t.profile.deleteAccount}
             </Button>
           </div>
         </div>
       </Card>
+
+      {/* Delete Account Modal */}
+      <AnimatePresence>
+        {isDeleteModalOpen && (
+          <div className="fixed inset-0 z-50 flex items-center justify-center px-4">
+            <motion.div
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              onClick={closeDeleteModal}
+              className="absolute inset-0 bg-black/40 backdrop-blur-[2px]"
+            />
+            
+            <motion.div
+              initial={{ opacity: 0, scale: 0.95, y: 20 }}
+              animate={{ opacity: 1, scale: 1, y: 0 }}
+              exit={{ opacity: 0, scale: 0.95, y: 20 }}
+              className="relative w-full max-w-md bg-white rounded-2xl shadow-xl overflow-hidden p-6"
+            >
+              <div className="flex flex-col items-center text-center">
+                <div className="w-12 h-12 bg-error-light text-error rounded-full flex items-center justify-center mb-4">
+                  <AlertTriangle size={24} />
+                </div>
+                <h3 className="text-xl font-bold text-gray-900 mb-2">
+                  Hapus Akun Permanen
+                </h3>
+                <p className="text-sm text-gray-500 mb-6">
+                  Tindakan ini tidak dapat dibatalkan. Masukkan kata sandi Anda untuk mengonfirmasi penghapusan akun.
+                </p>
+                
+                <div className="w-full mb-6 text-left">
+                  <PasswordInput
+                    label="Kata Sandi Saat Ini"
+                    id="confirm-delete-password"
+                    placeholder="Masukkan kata sandi"
+                    value={deletePassword}
+                    onChange={(e) => setDeletePassword(e.target.value)}
+                  />
+                </div>
+
+                <div className="flex gap-3 w-full">
+                  <Button
+                    variant="secondary"
+                    onClick={closeDeleteModal}
+                    className="flex-1 justify-center"
+                    disabled={isDeletingAccount}
+                  >
+                    Batal
+                  </Button>
+                  <Button
+                    variant="primary"
+                    onClick={onConfirmDelete}
+                    disabled={!deletePassword || isDeletingAccount}
+                    className="flex-1 justify-center !bg-error hover:!bg-error/90 !text-white !border-transparent"
+                  >
+                    {isDeletingAccount ? (
+                      <>
+                        <Loader2 size={16} className="animate-spin mr-2" />
+                        Menghapus...
+                      </>
+                    ) : (
+                      'Hapus Akun'
+                    )}
+                  </Button>
+                </div>
+              </div>
+            </motion.div>
+          </div>
+        )}
+      </AnimatePresence>
     </div>
   );
 };

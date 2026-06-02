@@ -47,7 +47,7 @@ const ChatWindow = () => {
   const activeSession = sessions.find(s => s.id === activeSessionId);
 
   return (
-    <div className="w-full relative bg-white border border-slate-200/80 rounded-2xl overflow-hidden flex h-[600px] md:h-[680px] shadow-sm">
+    <div className="w-full relative bg-white border border-slate-200/80 rounded-2xl overflow-hidden flex h-[calc(100vh-160px)] md:h-[calc(100vh-200px)] min-h-[600px] shadow-sm">
       
       {/* Collapsible Conversations Sub-Sidebar Panel */}
       <ConversationsSidebar

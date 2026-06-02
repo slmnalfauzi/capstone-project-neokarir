@@ -1,6 +1,53 @@
 import api, { USE_MOCK } from '../../../config/api';
 import { MASTER_JOBS } from '../data/recommendationData';
 
+const normalizeCourseId = (value) => (value || '').toString().trim().toLowerCase();
+
+const courseIdsMatch = (left, right) => {
+  const normalizedLeft = normalizeCourseId(left);
+  const normalizedRight = normalizeCourseId(right);
+
+  if (!normalizedLeft || !normalizedRight) return false;
+  return normalizedLeft === normalizedRight
+    || normalizedLeft.endsWith(`-${normalizedRight}`)
+    || normalizedRight.endsWith(`-${normalizedLeft}`);
+};
+
+const flattenRecommendationCourses = (recommendations = []) => {
+  const courses = [];
+
+  recommendations.forEach((recommendation) => {
+    const roadmapCourses = recommendation?.courses || recommendation?.learning_roadmap || [];
+    roadmapCourses.forEach((course) => {
+      if (course?.id) {
+        courses.push(course.id);
+      }
+    });
+  });
+
+  return courses;
+};
+
+const canonicalizeCompletedCourses = (completedCourses = [], catalogCourseIds = []) => {
+  const normalized = [];
+  let changed = false;
+
+  completedCourses.forEach((courseId) => {
+    const match = catalogCourseIds.find((catalogCourseId) => courseIdsMatch(courseId, catalogCourseId));
+    const canonicalCourseId = match || courseId;
+
+    if (!match || canonicalCourseId !== courseId) {
+      changed = true;
+    }
+
+    if (!normalized.some((existingCourseId) => courseIdsMatch(existingCourseId, canonicalCourseId))) {
+      normalized.push(canonicalCourseId);
+    }
+  });
+
+  return { courses: normalized, changed };
+};
+
 /**
  * Career Recommendation Service
  * Retrieves career tracks, match scores, and recommended study paths.
@@ -60,21 +107,83 @@ export const careerService = {
   },
 
   getCompletedCourses: async (email) => {
-    // Save locally since this is a frontend-only interactive checklist feature
-    const stored = localStorage.getItem(`completed_courses_${email}`);
-    return stored ? JSON.parse(stored) : [];
+    if (USE_MOCK) {
+      const stored = localStorage.getItem(`completed_courses_${email}`);
+      return stored ? JSON.parse(stored) : [];
+    }
+    
+    try {
+      const [profileResponse, recommendations] = await Promise.all([
+        api.get('/profile/me'),
+        careerService.getRecommendations().catch(() => []),
+      ]);
+
+      const profileData = profileResponse?.data?.profile?.profile_data || profileResponse?.profile?.profile_data || {};
+      const completedCourses = Array.isArray(profileData.completed_courses) ? profileData.completed_courses : [];
+      const catalogCourseIds = flattenRecommendationCourses(recommendations);
+      const { courses: canonicalCourses, changed } = canonicalizeCompletedCourses(completedCourses, catalogCourseIds);
+
+      if (changed) {
+        await api.put('/profile/me', {
+          profile_data: {
+            completed_courses: canonicalCourses
+          }
+        });
+      }
+
+      return canonicalCourses;
+    } catch (e) {
+      console.error("Failed to fetch completed courses from backend", e);
+      const stored = localStorage.getItem(`completed_courses_${email}`);
+      return stored ? JSON.parse(stored) : [];
+    }
   },
 
   toggleCourse: async (email, courseId) => {
-    const key = `completed_courses_${email}`;
-    const stored = localStorage.getItem(key);
-    let list = stored ? JSON.parse(stored) : [];
-    if (list.includes(courseId)) {
-      list = list.filter((id) => id !== courseId);
-    } else {
-      list.push(courseId);
+    if (USE_MOCK) {
+      const key = `completed_courses_${email}`;
+      const stored = localStorage.getItem(key);
+      let list = stored ? JSON.parse(stored) : [];
+      if (list.some((id) => courseIdsMatch(id, courseId))) {
+        list = list.filter((id) => !courseIdsMatch(id, courseId));
+      } else {
+        list.push(courseId);
+      }
+      localStorage.setItem(key, JSON.stringify(list));
+      return list;
     }
-    localStorage.setItem(key, JSON.stringify(list));
-    return list;
+
+    try {
+      const recommendations = await careerService.getRecommendations().catch(() => []);
+      const catalogCourseIds = flattenRecommendationCourses(recommendations);
+
+      // Get current list
+      const response = await api.get('/profile/me');
+      const profileData = response?.data?.profile?.profile_data || response?.profile?.profile_data || {};
+      let list = Array.isArray(profileData.completed_courses) ? profileData.completed_courses : [];
+      list = canonicalizeCompletedCourses(list, catalogCourseIds).courses;
+      
+      // Toggle
+      if (list.some((id) => courseIdsMatch(id, courseId))) {
+        list = list.filter((id) => !courseIdsMatch(id, courseId));
+      } else {
+        const match = catalogCourseIds.find((catalogCourseId) => courseIdsMatch(courseId, catalogCourseId));
+        list.push(match || courseId);
+      }
+
+      const { courses: canonicalCourses } = canonicalizeCompletedCourses(list, catalogCourseIds);
+
+      // Save to backend
+      await api.put('/profile/me', {
+        profile_data: {
+          completed_courses: canonicalCourses
+        }
+      });
+      
+      return canonicalCourses;
+    } catch (e) {
+      console.error("Failed to toggle course in backend", e);
+      throw e;
+    }
   },
 };

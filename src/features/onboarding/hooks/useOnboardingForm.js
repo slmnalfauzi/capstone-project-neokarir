@@ -32,12 +32,12 @@ export const useOnboardingForm = () => {
     experience: '< 1 Tahun (Termasuk Magang/Internship)',
     education: 'S1'
   });
-  const { user, completeOnboarding, refreshUserProfile } = useAuth();
+  const { user, updateProfile, completeOnboarding, refreshUserProfile } = useAuth();
   const navigate = useNavigate();
   const location = useLocation();
   const { error, success } = useToast();
   const hasCompletedOnce = localStorage.getItem('neokarir_has_completed_onboarding_once') === 'true';
-  const isReprocessingFlow = hasCompletedOnce || location.state?.reprocess === true;
+  const isOldUser = hasCompletedOnce || !!user?.target_role || !!user?.profile_data?.target_role;
 
   const nextStep = async () => {
     if (currentStep === 2 && inputMethod === 'upload') {
@@ -138,31 +138,48 @@ export const useOnboardingForm = () => {
         }
       };
       
-      // Update backend with the full profile
-      await profileService.updateProfile(profileData);
-      
-      // Update frontend state
-      completeOnboarding({
-        name: fullName || 'User',
-        role: currentRole,
-        current_role: currentRole,
-        target_role: targetRole,
-        target_domain: domain,
-        experience,
-        education,
-        skills_summary: combinedSkills.join(', '),
-        profile_data: profileData.profile_data
-      });
-      
-      // Sync auth user context with DB profile
-      await refreshUserProfile();
-      
-      success("Profil berhasil disimpan!");
-      
-      if (isReprocessingFlow) {
+      if (isOldUser || location.state?.fromSettings) {
+        // Update backend with the full profile
+        await profileService.updateProfile(profileData);
+        
+        // Update frontend state
+        completeOnboarding({
+          name: fullName || 'User',
+          role: currentRole,
+          current_role: currentRole,
+          target_role: targetRole,
+          target_domain: domain,
+          experience,
+          education,
+          skills_summary: combinedSkills.join(', '),
+          profile_data: profileData.profile_data
+        });
+        
+        // Sync auth user context with DB profile
+        await refreshUserProfile();
+        
+        try {
+          // Trigger AI analysis with the new profile data before redirecting
+          const { default: api } = await import('../../../config/api');
+          await Promise.all([
+            api.post('/recommendation/generate').catch(e => console.warn('Recommendation gen failed', e)),
+            api.post('/skillgap/analyze', {}).catch(e => console.warn('Skillgap analyze failed', e))
+          ]);
+        } catch (e) {
+          console.warn("AI pre-calculation failed, continuing to next page anyway.", e);
+        }
+        
+        success("Profil berhasil disimpan!");
         navigate('/dashboard', { replace: true });
       } else {
-        navigate('/ai-career-profiling', { replace: true });
+        success("Profil berhasil disimpan!");
+        navigate('/ai-career-profiling', { 
+          replace: true, 
+          state: { 
+            reprocess: true, 
+            pendingProfileData: profileData 
+          } 
+        });
       }
     } catch (err) {
       error(err.response?.data?.message || err.message || "Gagal menyimpan profil");

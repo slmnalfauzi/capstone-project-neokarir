@@ -6,6 +6,19 @@ const LearningPathTimeline = ({ pathData, completedCourses = [], onToggleCourse,
   const { t } = useLanguage();
   const isEmpty = !pathData || pathData.length === 0;
 
+  const normalizeCourseId = (value) => (value || '').toString().trim().toLowerCase();
+  const isCompletedCourse = (courseId) => {
+    const normalizedCourseId = normalizeCourseId(courseId);
+    if (!normalizedCourseId || !Array.isArray(completedCourses)) return false;
+
+    return completedCourses.some((completedCourseId) => {
+      const normalizedCompletedCourseId = normalizeCourseId(completedCourseId);
+      return normalizedCompletedCourseId === normalizedCourseId
+        || normalizedCourseId.endsWith(`-${normalizedCompletedCourseId}`)
+        || normalizedCompletedCourseId.endsWith(`-${normalizedCourseId}`);
+    });
+  };
+
   return (
     <div className="mt-8 bg-white rounded-3xl border border-slate-100 p-6 sm:p-8 shadow-sm">
       <div className="mb-8">
@@ -25,7 +38,7 @@ const LearningPathTimeline = ({ pathData, completedCourses = [], onToggleCourse,
         <div className="relative border-l-2 border-indigo-100 ml-4 md:ml-6 space-y-10">
           {pathData.map((course, index) => {
             const isHighPriority = course.prioritas === "Tinggi";
-            const isCompleted = completedCourses.includes(course.id);
+            const isCompleted = isCompletedCourse(course.id);
             const priorityVal = course.prioritas === "Tinggi" 
               ? t.skillGap.priorityHigh 
               : course.prioritas === "Sedang" 

@@ -18,6 +18,7 @@ export const profileService = {
             gender: 'Male',
             current_role: 'Fullstack Engineer',
             target_role: 'Senior Fullstack Engineer',
+            target_domain: 'Web Development',
             years_experience: 2,
             avatar_url: null,
             skills_summary: 'React, Node.js, Express, PostgreSQL',
@@ -89,6 +90,11 @@ export const profileService = {
     if (careerData.targetRole !== undefined) {
       payload.target_role = careerData.targetRole;
     }
+    if (careerData.targetDomain !== undefined) {
+      payload.target_domain = careerData.targetDomain;
+      payload.profile_data = payload.profile_data || {};
+      payload.profile_data.target_domain = careerData.targetDomain;
+    }
     if (careerData.experienceLevel !== undefined) {
       payload.profile_data = payload.profile_data || {};
       payload.profile_data.user_experience = careerData.experienceLevel;
@@ -145,6 +151,7 @@ export const profileService = {
     }
 
     return api.post('/auth/change-password', {
+      currentPassword: securityData.currentPassword,
       newPassword: securityData.newPassword
     });
   },
@@ -162,6 +169,17 @@ export const profileService = {
       profile_data: {
         preferences: preferencesData
       }
+    });
+  },
+
+  deleteAccount: async (password) => {
+    if (USE_MOCK) {
+      await new Promise((resolve) => setTimeout(resolve, 800));
+      return { success: true };
+    }
+
+    return api.delete('/auth/me', {
+      data: { password }
     });
   },
 };

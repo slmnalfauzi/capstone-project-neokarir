@@ -50,6 +50,8 @@ const ProfileSettingsPage = () => {
     user,
     handleAvatarUpload,
     isUploadingAvatar,
+    isDeletingAccount,
+    handleDeleteAccount,
   } = useProfileSettings();
 
   const breadcrumbItems = [
@@ -96,6 +98,8 @@ const ProfileSettingsPage = () => {
             onSave={handleSave}
             isSaving={isSaving}
             saveSuccess={saveSuccess}
+            isDeletingAccount={isDeletingAccount}
+            handleDeleteAccount={handleDeleteAccount}
           />
         );
       case 'preferences':

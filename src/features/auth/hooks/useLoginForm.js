@@ -54,14 +54,22 @@ export const useLoginForm = () => {
       
       // Determine if user has completed onboarding by checking profile
       let isNew = true;
+      let userName = user.user_metadata?.full_name || user.name;
+      
       try {
         const { default: api } = await import('../../../config/api');
         const profileRes = await api.get('/profile/me', {
           headers: { Authorization: `Bearer ${token}` }
         });
         const profile = profileRes.data?.profile;
-        if (profile && profile.target_role) {
-          isNew = false;
+        
+        if (profile) {
+          if (profile.target_role) {
+            isNew = false;
+          }
+          if (profile.full_name) {
+            userName = profile.full_name;
+          }
         }
       } catch (e) {
         console.warn("Could not fetch profile during login, assuming new user", e);
@@ -69,7 +77,7 @@ export const useLoginForm = () => {
       
       await login(user, token, isNew);
       
-      success(`Selamat datang kembali, ${user.user_metadata?.full_name || user.name || 'User'}!`);
+      success(`Selamat datang kembali, ${userName || 'User'}!`);
       
       if (isNew) {
         navigate('/onboarding');
@@ -77,7 +85,14 @@ export const useLoginForm = () => {
         navigate('/dashboard');
       }
     } catch (err) {
-      error(err.response?.data?.message || err.message || 'Gagal masuk. Silakan periksa kembali email dan password Anda.');
+      const errorMessage = err.response?.data?.message || err.message || '';
+      
+      if (errorMessage.toLowerCase().includes('invalid login credentials') || errorMessage.toLowerCase().includes('kata sandi salah')) {
+        setErrors({ password: 'Kata sandi salah' });
+        error('Kata sandi salah');
+      } else {
+        error(errorMessage || 'Gagal masuk. Silakan periksa kembali email dan password Anda.');
+      }
     } finally {
       setIsSubmitting(false);
     }

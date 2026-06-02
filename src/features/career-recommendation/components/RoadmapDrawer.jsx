@@ -6,8 +6,21 @@ const RoadmapDrawer = ({ job, completedCourses, toggleCourse, onClose }) => {
 
   if (!job) return null;
 
+  const normalizeCourseId = (value) => (value || '').toString().trim().toLowerCase();
+  const isCompletedCourse = (courseId) => {
+    const normalizedCourseId = normalizeCourseId(courseId);
+    if (!normalizedCourseId || !Array.isArray(completedCourses)) return false;
+
+    return completedCourses.some((completedCourseId) => {
+      const normalizedCompletedCourseId = normalizeCourseId(completedCourseId);
+      return normalizedCompletedCourseId === normalizedCourseId
+        || normalizedCourseId.endsWith(`-${normalizedCompletedCourseId}`)
+        || normalizedCompletedCourseId.endsWith(`-${normalizedCourseId}`);
+    });
+  };
+
   const jobCourses = job.courses || [];
-  const completedJobCourses = jobCourses.filter(c => completedCourses.includes(c.id));
+  const completedJobCourses = jobCourses.filter(c => isCompletedCourse(c.id));
   const completionPercentage = jobCourses.length > 0
     ? Math.round((completedJobCourses.length / jobCourses.length) * 100)
     : 0;
@@ -64,7 +77,7 @@ const RoadmapDrawer = ({ job, completedCourses, toggleCourse, onClose }) => {
           </div>
         ) : (
           jobCourses.map((course, index) => {
-            const isCompleted = completedCourses.includes(course.id);
+            const isCompleted = isCompletedCourse(course.id);
             const isHighPriority = course.prioritas === 'Tinggi';
             
             return (

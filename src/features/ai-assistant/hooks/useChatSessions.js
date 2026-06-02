@@ -126,10 +126,20 @@ export const useChatSessions = (user) => {
   }, []);
 
   // Delete a chat session
-  const deleteSession = useCallback((id, e) => {
+  const deleteSession = useCallback(async (id, e) => {
     if (e) {
       e.stopPropagation();
       e.preventDefault();
+    }
+    
+    const uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
+    if (uuidRegex.test(id)) {
+      try {
+        const { aiAssistantService } = await import('../api/aiAssistantService');
+        await aiAssistantService.deleteSession(id);
+      } catch (err) {
+        console.error("Failed to delete session on server", err);
+      }
     }
     
     const updated = sessions.filter(s => s.id !== id);
@@ -159,6 +169,13 @@ export const useChatSessions = (user) => {
         if (textForAutoRename && session.title === 'Obrolan Baru') {
           newTitle = textForAutoRename.length > 28 ? textForAutoRename.substring(0, 25) + '...' : textForAutoRename;
           newTitle = newTitle.charAt(0).toUpperCase() + newTitle.slice(1);
+          
+          const uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
+          if (uuidRegex.test(sessionId)) {
+             import('../api/aiAssistantService').then(({ aiAssistantService }) => {
+               aiAssistantService.renameSession(sessionId, newTitle).catch(e => console.error("Auto-rename failed", e));
+             });
+          }
         }
         return {
           ...session,
@@ -180,8 +197,19 @@ export const useChatSessions = (user) => {
   }, [sessions, user]);
 
   // Rename a chat session
-  const renameSession = useCallback((id, newTitle) => {
+  const renameSession = useCallback(async (id, newTitle) => {
     if (!newTitle.trim()) return;
+    
+    const uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
+    if (uuidRegex.test(id)) {
+      try {
+        const { aiAssistantService } = await import('../api/aiAssistantService');
+        await aiAssistantService.renameSession(id, newTitle);
+      } catch (err) {
+        console.error("Failed to rename session on server", err);
+      }
+    }
+    
     const updated = sessions.map(session => {
       if (session.id === id) {
         return {

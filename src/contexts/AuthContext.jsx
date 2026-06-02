@@ -44,6 +44,13 @@ export const AuthProvider = ({ children }) => {
         };
         setUser(mergedUser);
         localStorage.setItem('neokarir_user_profile', JSON.stringify(mergedUser));
+        
+        if (profile.target_role) {
+          setIsNewUser(false);
+          localStorage.setItem('neokarir_onboarding_completed', 'true');
+          localStorage.setItem('neokarir_has_completed_onboarding_once', 'true');
+        }
+
         return mergedUser;
       }
     } catch (e) {

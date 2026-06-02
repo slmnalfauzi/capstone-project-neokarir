@@ -48,15 +48,14 @@ const ForgotPasswordForm = () => {
             variants={authItemVariants}
             className="text-lg font-bold text-primary-text"
           >
-            Email Terkirim!
+            Permintaan Terkirim
           </motion.h2>
 
           <motion.p 
             variants={authItemVariants}
             className="text-sm text-secondary-text leading-relaxed max-w-sm"
           >
-            Kami telah mengirimkan link untuk mengatur ulang password ke{' '}
-            <span className="font-semibold text-primary-text">{email}</span>. 
+            Jika email tersebut terdaftar, kami telah mengirimkan link untuk mengatur ulang password.
             Silakan periksa kotak masuk atau folder spam Anda.
           </motion.p>
 

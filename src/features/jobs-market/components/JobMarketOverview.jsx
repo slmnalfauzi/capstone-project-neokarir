@@ -47,12 +47,14 @@ const JobMarketOverview = ({ predictions, selectedDomain, topDomain, generatedAt
         }
       });
 
-      const avgGrowth = count > 0 ? `${(totalGrowthPercent / count).toFixed(1)}%` : '0%';
+      const rawGrowth = count > 0 ? (totalGrowthPercent / count) : 0;
+      const avgGrowth = `${rawGrowth > 0 ? '+' : ''}${rawGrowth.toFixed(1)}%`;
 
       return {
         topDemandDomain: maxDom,
         topDemandValue: Math.round(maxVal),
         averageGrowth: avgGrowth,
+        rawGrowth: rawGrowth,
         totalDemand: Math.round(total)
       };
     } else {
@@ -64,13 +66,15 @@ const JobMarketOverview = ({ predictions, selectedDomain, topDomain, generatedAt
       return {
         topDemandDomain: selectedDomain,
         topDemandValue: Math.round(valEnd),
-        averageGrowth: `${growth.toFixed(1)}%`,
+        averageGrowth: `${growth > 0 ? '+' : ''}${growth.toFixed(1)}%`,
+        rawGrowth: growth,
         totalDemand: Math.round(valStart)
       };
     }
   };
 
   const stats = getStats();
+  const isPositiveGrowth = stats.rawGrowth >= 0;
 
   const containerVariants = {
     hidden: { opacity: 0 },
@@ -145,22 +149,22 @@ const JobMarketOverview = ({ predictions, selectedDomain, topDomain, generatedAt
         className="bg-pure-surface rounded-[24px] border border-border shadow-sm p-6 relative overflow-hidden transition-all duration-300 hover:shadow-md"
       >
         <div className="flex justify-between items-start mb-4">
-          <div className="p-3 bg-emerald-50 text-success rounded-xl">
-            <BarChart2 className="w-6 h-6 text-emerald-600" />
+          <div className={`p-3 rounded-xl ${isPositiveGrowth ? 'bg-emerald-50 text-success' : 'bg-red-50 text-error'}`}>
+            <BarChart2 className={`w-6 h-6 ${isPositiveGrowth ? 'text-emerald-600' : 'text-red-600'}`} />
           </div>
-          <span className="text-caption text-emerald-700 font-semibold bg-emerald-50/60 px-2.5 py-1 rounded-full border border-emerald-100">
-            {t.jobsMarket.positivePrediction}
+          <span className={`text-caption font-semibold px-2.5 py-1 rounded-full border ${isPositiveGrowth ? 'text-emerald-700 bg-emerald-50/60 border-emerald-100' : 'text-red-700 bg-red-50/60 border-red-100'}`}>
+            {isPositiveGrowth ? t.jobsMarket.positivePrediction : (language === 'en' ? 'Negative Prediction' : 'Prediksi Menurun')}
           </span>
         </div>
         <div>
           <h4 className="text-body-sm font-semibold text-secondary-text mb-1 uppercase tracking-wider">
             {selectedDomain === 'all' ? t.jobsMarket.averageGrowth : t.jobsMarket.growthTitle(predictions.length)}
           </h4>
-          <h2 className="text-title font-bold text-primary-text mb-2">
+          <h2 className={`text-title font-bold mb-2 ${isPositiveGrowth ? 'text-emerald-600' : 'text-red-600'}`}>
             {stats.averageGrowth}
           </h2>
           <p className="text-caption font-medium text-secondary-text flex items-center gap-1">
-            {t.jobsMarket.growthFooter}
+            {isPositiveGrowth ? t.jobsMarket.growthFooter : (language === 'en' ? 'Projections show a downward trend in IT market demand.' : 'Proyeksi demand pasar kerja IT menunjukkan tren akumulasi menurun.')}
           </p>
         </div>
       </motion.div>

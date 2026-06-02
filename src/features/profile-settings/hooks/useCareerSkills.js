@@ -1,4 +1,4 @@
-import { useState, useCallback, useEffect } from 'react';
+import { useState, useCallback, useEffect, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../../../contexts/AuthContext';
 import { profileService } from '../api/profileService';
@@ -12,6 +12,7 @@ export const useCareerSkills = (initialUser) => {
   const [careerInfo, setCareerInfo] = useState({
     currentRole: initialUser?.current_role || initialUser?.role || '',
     targetRole: initialUser?.target_role || initialUser?.profile_data?.target_role || '',
+    targetDomain: initialUser?.target_domain || initialUser?.profile_data?.target_domain || '',
     experienceLevel: initialUser?.experience || initialUser?.profile_data?.user_experience || 'Fresh Graduate',
     skills: [],
     education: initialUser?.education || initialUser?.profile_data?.user_education || 'S1',
@@ -22,10 +23,12 @@ export const useCareerSkills = (initialUser) => {
       const dbSkills = initialUser.profile_data?.owned_skills || 
         (initialUser.skills_summary ? initialUser.skills_summary.split(',').map(s => s.trim()).filter(Boolean) : []);
       
+      /* eslint-disable-next-line react-hooks/set-state-in-effect */
       setCareerInfo(prev => ({
         ...prev,
         currentRole: initialUser.current_role || initialUser.role || '',
         targetRole: initialUser.target_role || initialUser.profile_data?.target_role || '',
+        targetDomain: initialUser.target_domain || initialUser.profile_data?.target_domain || '',
         experienceLevel: initialUser.experience || initialUser.profile_data?.user_experience || 'Fresh Graduate',
         skills: dbSkills,
         education: initialUser.education || initialUser.profile_data?.user_education || 'S1',
@@ -33,15 +36,50 @@ export const useCareerSkills = (initialUser) => {
     }
   }, [initialUser]);
 
+  const saveTimeoutRef = useRef(null);
+
   const updateCareerInfo = useCallback((field, value) => {
-    setCareerInfo(prev => ({ ...prev, [field]: value }));
-  }, []);
+    setCareerInfo(prev => {
+      const next = { ...prev, [field]: value };
+      
+      // Auto-save logic with debounce
+      if (saveTimeoutRef.current) {
+        clearTimeout(saveTimeoutRef.current);
+      }
+      
+      saveTimeoutRef.current = setTimeout(() => {
+        profileService.updateCareerInfo({
+          currentRole: next.currentRole,
+          targetRole: next.targetRole,
+          targetDomain: next.targetDomain,
+          experienceLevel: next.experienceLevel,
+          skills: next.skills,
+          education: next.education,
+        }).then(() => {
+          updateProfile({
+            role: next.currentRole,
+            current_role: next.currentRole,
+            target_role: next.targetRole,
+            target_domain: next.targetDomain,
+            experience: next.experienceLevel,
+            education: next.education,
+          });
+        }).catch(err => console.error("Auto-save failed", err));
+      }, 800);
+
+      return next;
+    });
+  }, [updateProfile]);
 
   const saveCareerInfo = useCallback(async (currentCareerInfo) => {
+    if (saveTimeoutRef.current) {
+      clearTimeout(saveTimeoutRef.current);
+    }
     const info = currentCareerInfo || careerInfo;
     await profileService.updateCareerInfo({
       currentRole: info.currentRole,
       targetRole: info.targetRole,
+      targetDomain: info.targetDomain,
       experienceLevel: info.experienceLevel,
       skills: info.skills,
       education: info.education,
@@ -50,6 +88,7 @@ export const useCareerSkills = (initialUser) => {
       role: info.currentRole,
       current_role: info.currentRole,
       target_role: info.targetRole,
+      target_domain: info.targetDomain,
       experience: info.experienceLevel,
       education: info.education,
     });
@@ -81,7 +120,7 @@ export const useCareerSkills = (initialUser) => {
     setIsReprocessing(false);
     setIsModalOpen(false);
     resetOnboarding();
-    navigate('/onboarding');
+    navigate('/onboarding', { state: { fromSettings: true } });
   }, [navigate, resetOnboarding]);
 
   const openModal = () => setIsModalOpen(true);

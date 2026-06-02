@@ -1,4 +1,5 @@
 import api, { USE_MOCK } from '../../../config/api';
+import { supabase } from '../../../config/supabase';
 
 /**
  * Authentication service layer.
@@ -74,7 +75,7 @@ export const authService = {
     return api.post('/auth/forgot-password', { email });
   },
 
-  resetPassword: async (token, newPassword) => {
+  resetPassword: async (newPassword) => {
     if (USE_MOCK) {
       await new Promise((resolve) => setTimeout(resolve, 800));
       return {
@@ -83,7 +84,22 @@ export const authService = {
       };
     }
 
-    return api.post('/auth/reset-password', { token, password: newPassword });
+    if (!supabase) {
+      throw new Error('Konfigurasi Supabase frontend belum tersedia.');
+    }
+
+    const { error } = await supabase.auth.updateUser({
+      password: newPassword,
+    });
+
+    if (error) {
+      throw new Error(error.message || 'Gagal memperbarui kata sandi.');
+    }
+
+    return {
+      success: true,
+      message: 'Kata sandi berhasil diperbarui.',
+    };
   },
 
   me: async () => {

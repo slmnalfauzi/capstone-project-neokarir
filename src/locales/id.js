@@ -20,7 +20,7 @@ const id = {
     skillGap: "Skill Gap Analysis",
     recommendation: "Career Recommendation",
     cvAnalyzer: "CV Analyzer",
-    jobsMarket: "Jobs Market",
+    jobsMarket: "Job Trend",
     aiAssistant: "AI Assistant",
     settings: "Profile & Settings",
     support: "Support",
@@ -76,7 +76,7 @@ const id = {
   },
   career: {
     advisorInsightTitle: "NeoAI Career Advisor Insight",
-    advisorInsight: (education, experience, domain) => `Berdasarkan profil onboarding Anda (${education}, ${experience}) dengan fokus bidang ${domain}, pekerjaan teratas kami rekomendasikan di bawah ini. Selesaikan course pada *Roadmap* untuk langsung melengkapi skill gap Anda dan meningkatkan persentase kecocokan kerja!`,
+    advisorInsight: (education, experience, domain) => `Halo! 👋 Berdasarkan hasil analisis mendalam AI Career Profiling dan kalkulasi Skill Gap terhadap profil Anda (Pendidikan: ${education}, Pengalaman: ${experience}) di bidang ${domain}, AI kami telah merumuskan rekomendasi karir dengan tingkat kecocokan tertinggi untuk Anda. Silakan ikuti panduan belajar pada *Roadmap* untuk menutup kesenjangan keahlian yang terdeteksi dan meningkatkan skor kesiapan kerja Anda!`,
     detailTitle: "Rekomendasi Karir Detail",
     matchScore: "Skor Kecocokan Kerja",
     matchScoreTitle: "Grafik Kesiapan Kerja Anda",
@@ -229,6 +229,7 @@ const id = {
     projectionDesc: (domain) => `Menampilkan pertumbuhan estimasi jumlah lowongan kerja ${domain} dalam beberapa bulan ke depan.`,
     estDemand: "Estimasi Jumlah Lowongan",
     vacanciesUnit: "lowongan",
+    monthPlus: (n) => `Bulan +${n}`,
     // insights
     rankingTitle: "Peringkat Kebutuhan Domain Kerja IT",
     rankingDesc: "Urutan bidang keahlian IT berdasarkan estimasi lowongan aktif bulan depan.",
