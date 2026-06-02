@@ -30,6 +30,7 @@
     "express": "^5.2.1",
     "morgan": "^1.10.1",
     "multer": "^2.0.2",
+    "nodemailer": "^8.0.10",
     "pg": "^8.21.0"
   },
   "devDependencies": {

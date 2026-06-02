@@ -11,6 +11,7 @@ const PROFILE_FIELDS = new Set([
 	'summary',
 	'current_role',
 	'target_role',
+	'target_domain',
 	'years_experience',
 	'location',
 	'phone',

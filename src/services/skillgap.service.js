@@ -4,18 +4,62 @@ const RecommendationRepository = require('../repositories/recommendation.reposit
 const RecommendationService = require('./recommendation.service');
 const { callAI2 } = require('../utils/aiClient');
 
+const normalizeCourseId = (value) => (value || '').toString().trim().toLowerCase();
+
+const isCompletedCourse = (courseId, completedCourses = []) => {
+	const normalizedCourseId = normalizeCourseId(courseId);
+	if (!normalizedCourseId) return false;
+
+	return completedCourses.some((completedCourseId) => {
+		const normalizedCompletedCourseId = normalizeCourseId(completedCourseId);
+		return normalizedCompletedCourseId === normalizedCourseId
+			|| normalizedCourseId.endsWith(`-${normalizedCompletedCourseId}`)
+			|| normalizedCompletedCourseId.endsWith(`-${normalizedCourseId}`);
+	});
+};
+
+const buildRoadmapProgress = (learningRoadmap, completedCourses = []) => {
+	const totalCourses = Array.isArray(learningRoadmap) ? learningRoadmap.length : 0;
+	if (totalCourses === 0) {
+		return {
+			completedCount: 0,
+			totalCount: 0,
+			completionPercentage: 0,
+			bonusScore: 0,
+		};
+	}
+
+	const completedCount = learningRoadmap.filter((course) => isCompletedCourse(course.id, completedCourses)).length;
+	const completionPercentage = Math.round((completedCount / totalCourses) * 100);
+	const bonusScore = Math.round((completionPercentage / 100) * 20);
+
+	return {
+		completedCount,
+		totalCount: totalCourses,
+		completionPercentage,
+		bonusScore,
+	};
+};
+
+const fetchLearningRoadmap = async (jobId) => {
+	if (!jobId) return null;
+
+	try {
+		const roadmapData = await RecommendationService.getRoadmap(jobId);
+		return roadmapData.courses || [];
+	} catch (err) {
+		console.error(`Failed to fetch roadmap from AI-2 for jobId ${jobId}:`, err);
+		return null;
+	}
+};
+
 const getByUserId = async (userId, accessToken, jobId = null) => {
 	const record = await SkillgapRepository.getByUserId(userId, accessToken, jobId);
 	if (!record) return null;
 
 	let learningRoadmap = null;
 	if (record.job_id) {
-		try {
-			const roadmapData = await RecommendationService.getRoadmap(record.job_id);
-			learningRoadmap = roadmapData.courses || [];
-		} catch (err) {
-			console.error(`Failed to fetch roadmap from AI-2 for jobId ${record.job_id}:`, err);
-		}
+		learningRoadmap = await fetchLearningRoadmap(record.job_id);
 	}
 
 	return {
@@ -34,8 +78,8 @@ const analyze = async (userId, payload, accessToken) => {
 		throw err;
 	}
 	
-	target_domain = target_domain || profile.target_domain || 'Teknologi Informasi';
-	target_role = target_role || profile.target_role || 'Software Engineer';
+	target_domain = target_domain || profile.target_domain || profile.profile_data?.target_domain || 'Teknologi Informasi';
+	target_role = target_role || profile.target_role || profile.profile_data?.target_role || 'Software Engineer';
 	
 	if (!owned_skills) {
 		if (profile.profile_data && Array.isArray(profile.profile_data.owned_skills)) {
@@ -104,6 +148,37 @@ const analyze = async (userId, payload, accessToken) => {
 	let min_education = aiResult.data.min_education || aiResult.data.education_match?.required || 'Tidak Ditentukan';
 	let min_experience = aiResult.data.min_experience || aiResult.data.experience_match?.required || 'Tidak Ditentukan';
 	let required_skills = aiResult.data.required_skills || [];
+	const completedCourses = Array.isArray(profile.profile_data?.completed_courses)
+		? profile.profile_data.completed_courses
+		: [];
+
+	let learningRoadmap = await fetchLearningRoadmap(job_id);
+	if (!learningRoadmap && aiResult.data.learning_roadmap && Array.isArray(aiResult.data.learning_roadmap)) {
+		const roadmapPrefix = job_id || target_role || 'roadmap';
+		const flatCourses = [];
+		aiResult.data.learning_roadmap.forEach((level) => {
+			if (Array.isArray(level.items)) {
+				level.items.forEach((item, idx) => {
+					flatCourses.push({
+						id: `${roadmapPrefix}-${level.level_key}-${idx}`,
+						skill: item.skill,
+						judul: item.judul_materi,
+						platform: item.provider,
+						link: item.link,
+						durasi: level.level_label.includes('1-2') ? '4-8 Minggu' : 'Tergantung progres',
+						prioritas: item.is_required_by_company ? 'Tinggi' : 'Sedang',
+						deskripsi: `Pelajari fundamental dan praktik untuk menguasai ${item.skill} melalui ${item.provider}.`
+					});
+				});
+			}
+		});
+		learningRoadmap = flatCourses;
+	}
+
+	const roadmapProgress = buildRoadmapProgress(learningRoadmap, completedCourses);
+	if (roadmapProgress.bonusScore > 0) {
+		match_score = Math.min(100, Math.round(match_score + roadmapProgress.bonusScore));
+	}
 
 	if (match_score === 0 && matched_skills.length === 0) {
 		// Fallback to recommendation-matching logic if AI response doesn't provide them
@@ -174,40 +249,14 @@ const analyze = async (userId, payload, accessToken) => {
 			...aiResult.data,
 			min_education,
 			min_experience,
-			required_skills
+			required_skills,
+			completed_courses: completedCourses,
+			roadmap_progress: roadmapProgress,
+			overall_readiness: match_score
 		},
 	};
 
 	const savedRecord = await SkillgapRepository.upsertByUserId(userId, upsertPayload, accessToken, job_id);
-
-	let learningRoadmap = null;
-	if (aiResult.data.learning_roadmap && Array.isArray(aiResult.data.learning_roadmap)) {
-		const flatCourses = [];
-		aiResult.data.learning_roadmap.forEach((level) => {
-			if (Array.isArray(level.items)) {
-				level.items.forEach((item, idx) => {
-					flatCourses.push({
-						id: `${level.level_key}-${idx}`,
-						skill: item.skill,
-						judul: item.judul_materi,
-						platform: item.provider,
-						link: item.link,
-						durasi: level.level_label.includes('1-2') ? '4-8 Minggu' : 'Tergantung progres',
-						prioritas: item.is_required_by_company ? 'Tinggi' : 'Sedang',
-						deskripsi: `Pelajari fundamental dan praktik untuk menguasai ${item.skill} melalui ${item.provider}.`
-					});
-				});
-			}
-		});
-		learningRoadmap = flatCourses;
-	} else if (job_id) {
-		try {
-			const roadmapData = await RecommendationService.getRoadmap(job_id);
-			learningRoadmap = roadmapData.courses || [];
-		} catch (err) {
-			console.error(`Failed to fetch roadmap from AI-2 for jobId ${job_id}:`, err);
-		}
-	}
 
 	return {
 		...savedRecord,

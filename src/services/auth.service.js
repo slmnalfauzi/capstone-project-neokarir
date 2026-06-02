@@ -128,12 +128,55 @@ const login = async ({ email, password }) => {
 	};
 };
 
-const changePassword = async (userId, newPassword, accessToken) => {
-	// Call Supabase with the user's access token to update their password
-	const supabase = getSupabaseClient();
+const changePassword = async (userId, email, currentPassword, newPassword, accessToken) => {
+	const { createClient } = require('@supabase/supabase-js');
+	const env = require('../config/env');
 	
-	const { data, error } = await supabase.auth.updateUser({
+	// Create a fresh client instance so we don't pollute the global singleton
+	const tempClient = createClient(env.SUPABASE_URL, env.SUPABASE_KEY, {
+		auth: {
+			persistSession: false,
+			autoRefreshToken: false,
+		}
+	});
+
+	// Verify current password first, this also populates tempClient with an active session
+	const { error: signInError } = await tempClient.auth.signInWithPassword({
+		email,
+		password: currentPassword
+	});
+
+	if (signInError) {
+		throw new AppError(ERROR_CODES.INVALID_INPUT, 'Password saat ini salah', 400);
+	}
+
+	const adminSupabase = getAdminSupabaseClient();
+	if (!adminSupabase) {
+		throw new AppError(ERROR_CODES.SERVER_ERROR || 'SERVER_ERROR', 'Tidak dapat mengubah kata sandi: Admin client tidak dikonfigurasi.', 500);
+	}
+
+	// Update password using the admin client for guaranteed execution
+	const { error: updateError } = await adminSupabase.auth.admin.updateUserById(userId, {
 		password: newPassword
+	});
+
+	if (updateError) {
+		throw new AppError(ERROR_CODES.INVALID_INPUT, updateError.message, 400);
+	}
+
+	return {
+		success: true,
+	};
+};
+
+const forgotPassword = async (email) => {
+	const supabase = getSupabaseClient();
+	const env = require('../config/env');
+	const redirectBase = (env.FRONTEND_URL || env.CORS_ORIGIN || 'http://localhost:3001').replace(/\/$/, '');
+	const redirectTo = `${redirectBase}/reset-password`;
+
+	const { error } = await supabase.auth.resetPasswordForEmail(email, {
+		redirectTo,
 	});
 
 	if (error) {
@@ -145,8 +188,56 @@ const changePassword = async (userId, newPassword, accessToken) => {
 	};
 };
 
+const deleteAccount = async (userId, email, password) => {
+	const { createClient } = require('@supabase/supabase-js');
+	const env = require('../config/env');
+	const { getPrismaClient } = require('../config/prisma');
+	
+	const tempClient = createClient(env.SUPABASE_URL, env.SUPABASE_KEY, {
+		auth: {
+			persistSession: false,
+			autoRefreshToken: false,
+		}
+	});
+
+	// Verify password first
+	const { error: signInError } = await tempClient.auth.signInWithPassword({
+		email,
+		password
+	});
+
+	if (signInError) {
+		throw new AppError(ERROR_CODES.INVALID_INPUT, 'Kata sandi salah', 400);
+	}
+
+	const adminSupabase = getAdminSupabaseClient();
+	if (!adminSupabase) {
+		throw new AppError(ERROR_CODES.SERVER_ERROR || 'SERVER_ERROR', 'Tidak dapat menghapus akun: Admin client tidak dikonfigurasi.', 500);
+	}
+	
+	const prisma = getPrismaClient();
+
+	// Delete from Prisma first to satisfy foreign key constraints (cascades to profiles, etc.)
+	try {
+		await prisma.user.delete({ where: { id: userId } });
+	} catch (dbErr) {
+		// If user doesn't exist in Prisma or another error occurs, log it and proceed to delete from Supabase
+		console.warn(`Prisma user deletion failed for ${userId}:`, dbErr.message);
+	}
+
+	// Delete from Supabase Auth
+	const { error } = await adminSupabase.auth.admin.deleteUser(userId);
+	if (error) {
+		throw new AppError(ERROR_CODES.DATABASE_ERROR, error.message, 500);
+	}
+
+	return { success: true };
+};
+
 module.exports = {
 	register,
 	login,
+	forgotPassword,
 	changePassword,
+	deleteAccount,
 };

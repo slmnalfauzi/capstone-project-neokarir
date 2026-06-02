@@ -25,7 +25,7 @@ const createSupabaseClient = (accessToken) => {
 };
 
 const createAdminSupabaseClient = () => {
-  const adminKey = env.SUPABASE_SERVICE_ROLE_KEY || null;
+  const adminKey = env.SUPABASE_SERVICE_ROLE_KEY || env.SUPABASE_KEY || null;
   if (!adminKey) {
     return null;
   }

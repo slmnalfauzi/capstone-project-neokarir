@@ -29,8 +29,40 @@ const sendMessage = async (userId, chatId, message, accessToken) => {
 	return updatedChat;
 };
 
+const updateTitle = async (userId, chatId, title, accessToken) => {
+	const chat = await ChatRepository.getById(chatId, accessToken);
+	if (!chat) {
+		const err = new Error('Chat session not found');
+		err.statusCode = 404;
+		throw err;
+	}
+	if (chat.user_id !== userId) {
+		const err = new Error('Forbidden');
+		err.statusCode = 403;
+		throw err;
+	}
+	return ChatRepository.updateTitle(chatId, userId, title, accessToken);
+};
+
+const deleteChat = async (userId, chatId, accessToken) => {
+	const chat = await ChatRepository.getById(chatId, accessToken);
+	if (!chat) {
+		const err = new Error('Chat session not found');
+		err.statusCode = 404;
+		throw err;
+	}
+	if (chat.user_id !== userId) {
+		const err = new Error('Forbidden');
+		err.statusCode = 403;
+		throw err;
+	}
+	return ChatRepository.deleteChat(chatId, userId, accessToken);
+};
+
 module.exports = {
 	listByUserId,
 	create,
 	sendMessage,
+	updateTitle,
+	deleteChat,
 };

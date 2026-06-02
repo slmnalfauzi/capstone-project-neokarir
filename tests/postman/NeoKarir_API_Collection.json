@@ -1,0 +1,1401 @@
+{
+	"info": {
+		"_postman_id": "4b6c38a2-d98c-4a37-9ee1-7786477d9c6c",
+		"name": "NeoKarir API & AI Services Collection",
+		"description": "Koleksi Postman untuk pengujian integrasi penuh platform NeoKarir.\nMencakup Express API Gateway (port 3000), AI Service 1 (port 8000), dan AI Service 2 (port 8001).",
+		"schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+	},
+	"item": [
+		{
+			"name": "1. Health Checks",
+			"description": "Folder berisi endpoint pemeriksaan kesehatan untuk semua service (Express API Gateway, Database, dan AI Services).",
+			"item": [
+				{
+					"name": "Gateway Health Check",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{api_url}}/health",
+							"host": [
+								"{{api_url}}"
+							],
+							"path": [
+								"health"
+							]
+						},
+						"description": "Pemeriksaan kesehatan dasar untuk API Gateway."
+					},
+					"response": []
+				},
+				{
+					"name": "Gateway DB Health Check",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{api_url}}/health/db",
+							"host": [
+								"{{api_url}}"
+							],
+							"path": [
+								"health",
+								"db"
+							]
+						},
+						"description": "Pemeriksaan koneksi database PostgreSQL."
+					},
+					"response": []
+				},
+				{
+					"name": "Gateway AI Services Health Check",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{api_url}}/health/ai",
+							"host": [
+								"{{api_url}}"
+							],
+							"path": [
+								"health",
+								"ai"
+							]
+						},
+						"description": "Pemeriksaan koneksi dari API Gateway ke AI Service 1 dan AI Service 2."
+					},
+					"response": []
+				},
+				{
+					"name": "AI Service 1 Root",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{ai_service_1_url}}/",
+							"host": [
+								"{{ai_service_1_url}}"
+							],
+							"path": [
+								""
+							]
+						},
+						"description": "Mengecek root endpoint FastAPI AI Service 1."
+					},
+					"response": []
+				},
+				{
+					"name": "AI Service 1 Health",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{ai_service_1_url}}/health",
+							"host": [
+								"{{ai_service_1_url}}"
+							],
+							"path": [
+								"health"
+							]
+						},
+						"description": "Mengecek status kesiapan model AI di AI Service 1."
+					},
+					"response": []
+				},
+				{
+					"name": "AI Service 2 Root",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{ai_service_2_url}}/",
+							"host": [
+								"{{ai_service_2_url}}"
+							],
+							"path": [
+								""
+							]
+						},
+						"description": "Mengecek root endpoint FastAPI AI Service 2."
+					},
+					"response": []
+				}
+			]
+		},
+		{
+			"name": "2. Authentication",
+			"description": "Endpoint autentikasi user melalui Supabase Auth.",
+			"item": [
+				{
+					"name": "Register",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"email\": \"{{email}}\",\n  \"password\": \"{{password}}\",\n  \"profile\": {\n    \"full_name\": \"NeoKarir Test User\"\n  }\n}"
+						},
+						"url": {
+							"raw": "{{api_url}}/auth/register",
+							"host": [
+								"{{api_url}}"
+							],
+							"path": [
+								"auth",
+								"register"
+							]
+						},
+						"description": "Mendaftarkan user baru di sistem."
+					},
+					"response": []
+				},
+				{
+					"name": "Login",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"const response = pm.response.json();",
+									"if (response.success && response.data && response.data.session) {",
+									"    pm.environment.set(\"auth_token\", response.data.session.access_token);",
+									"    pm.test(\"Token berhasil didapatkan dan disimpan ke Environment\", function () {",
+									"        pm.expect(response.data.session.access_token).to.be.a('string');",
+									"    });",
+									"}"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"email\": \"{{email}}\",\n  \"password\": \"{{password}}\"\n}"
+						},
+						"url": {
+							"raw": "{{api_url}}/auth/login",
+							"host": [
+								"{{api_url}}"
+							],
+							"path": [
+								"auth",
+								"login"
+							]
+						},
+						"description": "Melakukan login dan secara otomatis memperbarui variabel `auth_token` di Environment."
+					},
+					"response": []
+				},
+				{
+					"name": "Get Profile Me",
+					"request": {
+						"method": "GET",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{auth_token}}"
+							}
+						],
+						"url": {
+							"raw": "{{api_url}}/auth/me",
+							"host": [
+								"{{api_url}}"
+							],
+							"path": [
+								"auth",
+								"me"
+							]
+						},
+						"description": "Mendapatkan profil akun user yang sedang login."
+					},
+					"response": []
+				},
+				{
+					"name": "Change Password",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{auth_token}}",
+								"type": "text"
+							},
+							{
+								"key": "Content-Type",
+								"value": "application/json",
+								"type": "text"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"currentPassword\": \"{{password}}\",\n  \"newPassword\": \"NewPassword123!\"\n}"
+						},
+						"url": {
+							"raw": "{{api_url}}/auth/change-password",
+							"host": [
+								"{{api_url}}"
+							],
+							"path": [
+								"auth",
+								"change-password"
+							]
+						},
+						"description": "Mengganti password akun user."
+					},
+					"response": []
+				},
+				{
+					"name": "Delete Account",
+					"request": {
+						"method": "DELETE",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{auth_token}}",
+								"type": "text"
+							},
+							{
+								"key": "Content-Type",
+								"value": "application/json",
+								"type": "text"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"password\": \"NewPassword123!\"\n}"
+						},
+						"url": {
+							"raw": "{{api_url}}/auth/me",
+							"host": [
+								"{{api_url}}"
+							],
+							"path": [
+								"auth",
+								"me"
+							]
+						},
+						"description": "Menghapus akun user secara permanen dari Supabase & DB."
+					},
+					"response": []
+				}
+			]
+		},
+		{
+			"name": "3. Profile Management",
+			"description": "Endpoint pengelolaan detail profil karir user.",
+			"item": [
+				{
+					"name": "Get My Profile Details",
+					"request": {
+						"method": "GET",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{auth_token}}"
+							}
+						],
+						"url": {
+							"raw": "{{api_url}}/profile/me",
+							"host": [
+								"{{api_url}}"
+							],
+							"path": [
+								"profile",
+								"me"
+							]
+						},
+						"description": "Mengambil informasi detail profil karir user."
+					},
+					"response": []
+				},
+				{
+					"name": "Update Profile Details",
+					"request": {
+						"method": "PUT",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{auth_token}}"
+							},
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"full_name\": \"NeoKarir Test User Updated\",\n  \"target_role\": \"Data Scientist\",\n  \"target_domain\": \"Data Science & AI\",\n  \"skills_summary\": \"Python, Pandas, SQL, Scikit-Learn\",\n  \"bio\": \"Passionate data enthusiast building AI models\",\n  \"education_level\": \"S1 Informatika\",\n  \"years_experience\": 1.5\n}"
+						},
+						"url": {
+							"raw": "{{api_url}}/profile/me",
+							"host": [
+								"{{api_url}}"
+							],
+							"path": [
+								"profile",
+								"me"
+							]
+						},
+						"description": "Memperbarui data profil karir user (target role, domain, dll)."
+					},
+					"response": []
+				},
+				{
+					"name": "Get Profile Score",
+					"request": {
+						"method": "GET",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{auth_token}}"
+							}
+						],
+						"url": {
+							"raw": "{{api_url}}/profile/me/score",
+							"host": [
+								"{{api_url}}"
+							],
+							"path": [
+								"profile",
+								"me",
+								"score"
+							]
+						},
+						"description": "Mengambil nilai kematangan profil karir user (dihitung oleh AI Service 2)."
+					},
+					"response": []
+				},
+				{
+					"name": "Upload Avatar",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{auth_token}}"
+							}
+						],
+						"body": {
+							"mode": "formdata",
+							"formdata": [
+								{
+									"key": "avatar",
+									"type": "file",
+									"src": [],
+									"description": "Unggah foto profil di sini (Format JPG/PNG)"
+								}
+							]
+						},
+						"url": {
+							"raw": "{{api_url}}/profile/avatar",
+							"host": [
+								"{{api_url}}"
+							],
+							"path": [
+								"profile",
+								"avatar"
+							]
+						},
+						"description": "Unggah foto avatar ke Supabase storage."
+					},
+					"response": []
+				}
+			]
+		},
+		{
+			"name": "4. CV Operations",
+			"description": "Endpoint yang berkaitan dengan pengelolaan CV dan analisis teks CV berbasis AI.",
+			"item": [
+				{
+					"name": "Get My CV Details",
+					"request": {
+						"method": "GET",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{auth_token}}"
+							}
+						],
+						"url": {
+							"raw": "{{api_url}}/cv/me",
+							"host": [
+								"{{api_url}}"
+							],
+							"path": [
+								"cv",
+								"me"
+							]
+						},
+						"description": "Mengambil info berkas CV yang sudah diunggah dan disimpan."
+					},
+					"response": []
+				},
+				{
+					"name": "Update CV Details Manually",
+					"request": {
+						"method": "PUT",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{auth_token}}"
+							},
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"summary\": \"Junior Data Scientist with good foundation in machine learning.\",\n  \"cv_data\": {\n    \"atsScore\": 80,\n    \"strengths\": [\"Python\", \"Data Wrangling\"],\n    \"weaknesses\": [\"Deep Learning\"],\n    \"improvementTips\": [\"Learn TensorFlow/PyTorch\"]\n  }\n}"
+						},
+						"url": {
+							"raw": "{{api_url}}/cv/me",
+							"host": [
+								"{{api_url}}"
+							],
+							"path": [
+								"cv",
+								"me"
+							]
+						},
+						"description": "Memperbarui isi data CV secara manual."
+					},
+					"response": []
+				},
+				{
+					"name": "Upload CV File",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{auth_token}}"
+							}
+						],
+						"body": {
+							"mode": "formdata",
+							"formdata": [
+								{
+									"key": "file",
+									"type": "file",
+									"src": [],
+									"description": "Unggah berkas CV PDF di sini"
+								}
+							]
+						},
+						"url": {
+							"raw": "{{api_url}}/cv/upload",
+							"host": [
+								"{{api_url}}"
+							],
+							"path": [
+								"cv",
+								"upload"
+							]
+						},
+						"description": "Mengunggah berkas CV PDF ke penyimpanan cloud (Supabase Storage)."
+					},
+					"response": []
+				},
+				{
+					"name": "Analyze CV (Auto-Profiling)",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{auth_token}}"
+							}
+						],
+						"body": {
+							"mode": "formdata",
+							"formdata": [
+								{
+									"key": "file",
+									"type": "file",
+									"src": [],
+									"description": "Unggah berkas CV PDF untuk dianalisis dan diekstrak menjadi profil"
+								}
+							]
+						},
+						"url": {
+							"raw": "{{api_url}}/cv/analyze",
+							"host": [
+								"{{api_url}}"
+							],
+							"path": [
+								"cv",
+								"analyze"
+							]
+						},
+						"description": "Mengunggah CV, menganalisis entitas dengan AI Service 1, lalu otomatis memperbarui profil user."
+					},
+					"response": []
+				},
+				{
+					"name": "Smart Analyze CV",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{auth_token}}"
+							}
+						],
+						"body": {
+							"mode": "formdata",
+							"formdata": [
+								{
+									"key": "file",
+									"type": "file",
+									"src": [],
+									"description": "Unggah berkas CV PDF untuk smart analysis lengkap"
+								}
+							]
+						},
+						"url": {
+							"raw": "{{api_url}}/cv/smart-analyze",
+							"host": [
+								"{{api_url}}"
+							],
+							"path": [
+								"cv",
+								"smart-analyze"
+							]
+						},
+						"description": "Melakukan ekstraksi mendalam (RoBERTa & Groq Llama-3) untuk mendapatkan skor ATS dan saran perbaikan."
+					},
+					"response": []
+				}
+			]
+		},
+		{
+			"name": "5. Recommendations",
+			"description": "Endpoint untuk menghasilkan rekomendasi pekerjaan dan peta jalan pembelajaran.",
+			"item": [
+				{
+					"name": "List My Recommendations",
+					"request": {
+						"method": "GET",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{auth_token}}"
+							}
+						],
+						"url": {
+							"raw": "{{api_url}}/recommendation/me",
+							"host": [
+								"{{api_url}}"
+							],
+							"path": [
+								"recommendation",
+								"me"
+							]
+						},
+						"description": "Mendapatkan rekomendasi lowongan pekerjaan yang cocok bagi user."
+					},
+					"response": []
+				},
+				{
+					"name": "Generate Recommendations",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{auth_token}}"
+							}
+						],
+						"url": {
+							"raw": "{{api_url}}/recommendation/generate",
+							"host": [
+								"{{api_url}}"
+							],
+							"path": [
+								"recommendation",
+								"generate"
+							]
+						},
+						"description": "Memicu sistem AI untuk menghasilkan rekomendasi baru berdasarkan data profil terbaru."
+					},
+					"response": []
+				},
+				{
+					"name": "Get Learning Roadmap",
+					"request": {
+						"method": "GET",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{auth_token}}"
+							}
+						],
+						"url": {
+							"raw": "{{api_url}}/recommendation/roadmap/{{job_id}}",
+							"host": [
+								"{{api_url}}"
+							],
+							"path": [
+								"recommendation",
+								"roadmap",
+								"{{job_id}}"
+							]
+						},
+						"description": "Mengambil peta jalan (learning roadmap) spesifik untuk menjembatani skill gap pada lowongan pekerjaan tertentu."
+					},
+					"response": []
+				}
+			]
+		},
+		{
+			"name": "6. Job Matching",
+			"description": "Endpoint pencocokan profil user dengan lowongan menggunakan Siamese Network.",
+			"item": [
+				{
+					"name": "Calculate Job Match Score",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{auth_token}}"
+							},
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"job_id\": \"{{job_id}}\"\n}"
+						},
+						"url": {
+							"raw": "{{api_url}}/jobmatch/run",
+							"host": [
+								"{{api_url}}"
+							],
+							"path": [
+								"jobmatch",
+								"run"
+							]
+						},
+						"description": "Menghitung persentase kecocokan profil user dengan ID lowongan pekerjaan."
+					},
+					"response": []
+				}
+			]
+		},
+		{
+			"name": "7. Skill Gap Analysis",
+			"description": "Endpoint analisis kesenjangan skill (skill gap) profil user terhadap role target.",
+			"item": [
+				{
+					"name": "Get My Skill Gap",
+					"request": {
+						"method": "GET",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{auth_token}}"
+							}
+						],
+						"url": {
+							"raw": "{{api_url}}/skillgap/me",
+							"host": [
+								"{{api_url}}"
+							],
+							"path": [
+								"skillgap",
+								"me"
+							]
+						},
+						"description": "Mengambil visualisasi radar skill gap yang sudah dihitung."
+					},
+					"response": []
+				},
+				{
+					"name": "Analyze Skill Gap manually against Job",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{auth_token}}"
+							},
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"job_id\": \"{{job_id}}\"\n}"
+						},
+						"url": {
+							"raw": "{{api_url}}/skillgap/analyze",
+							"host": [
+								"{{api_url}}"
+							],
+							"path": [
+								"skillgap",
+								"analyze"
+							]
+						},
+						"description": "Memicu analisis skill gap user terhadap lowongan pekerjaan tertentu secara spesifik."
+					},
+					"response": []
+				}
+			]
+		},
+		{
+			"name": "8. AI Career Assistant (Chatbot)",
+			"description": "Endpoint asisten karir AI menggunakan model LLM + RAG (Retrieval Augmented Generation).",
+			"item": [
+				{
+					"name": "List Chats",
+					"request": {
+						"method": "GET",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{auth_token}}"
+							}
+						],
+						"url": {
+							"raw": "{{api_url}}/chat",
+							"host": [
+								"{{api_url}}"
+							],
+							"path": [
+								"chat"
+							]
+						},
+						"description": "Mendapatkan daftar sesi percakapan asisten karir user."
+					},
+					"response": []
+				},
+				{
+					"name": "Create Chat Session",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"const response = pm.response.json();",
+									"if (response.success && response.data && response.data.id) {",
+									"    pm.environment.set(\"chat_id\", response.data.id);",
+									"    pm.test(\"Sesi Chat berhasil dibuat, chat_id disimpan\", function () {",
+									"        pm.expect(response.data.id).to.be.a('string');",
+									"    });",
+									"}"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{auth_token}}"
+							},
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"title\": \"Percakapan Karir DevOps\"\n}"
+						},
+						"url": {
+							"raw": "{{api_url}}/chat",
+							"host": [
+								"{{api_url}}"
+							],
+							"path": [
+								"chat"
+							]
+						},
+						"description": "Membuat sesi percakapan baru dengan asisten AI."
+					},
+					"response": []
+				},
+				{
+					"name": "Send Chat Message",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{auth_token}}"
+							},
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"message\": \"Tolong jelaskan sertifikasi cloud apa saja yang direkomendasikan untuk pemula?\"\n}"
+						},
+						"url": {
+							"raw": "{{api_url}}/chat/{{chat_id}}/messages",
+							"host": [
+								"{{api_url}}"
+							],
+							"path": [
+								"chat",
+								"{{chat_id}}",
+								"messages"
+							]
+						},
+						"description": "Mengirimkan pertanyaan ke AI dan mendapatkan respons dari RAG chatbot."
+					},
+					"response": []
+				},
+				{
+					"name": "Update Chat Title",
+					"request": {
+						"method": "PUT",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{auth_token}}"
+							},
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"title\": \"Diskusi Sertifikasi Cloud\"\n}"
+						},
+						"url": {
+							"raw": "{{api_url}}/chat/{{chat_id}}/title",
+							"host": [
+								"{{api_url}}"
+							],
+							"path": [
+								"chat",
+								"{{chat_id}}",
+								"title"
+							]
+						},
+						"description": "Mengubah judul sesi percakapan."
+					},
+					"response": []
+				},
+				{
+					"name": "Delete Chat Session",
+					"request": {
+						"method": "DELETE",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{auth_token}}"
+							}
+						],
+						"url": {
+							"raw": "{{api_url}}/chat/{{chat_id}}",
+							"host": [
+								"{{api_url}}"
+							],
+							"path": [
+								"chat",
+								"{{chat_id}}"
+							]
+						},
+						"description": "Menghapus sesi percakapan."
+					},
+					"response": []
+				}
+			]
+		},
+		{
+			"name": "9. Market & Job Search",
+			"description": "Endpoint pencarian lowongan kerja serta proxy tren industri IT.",
+			"item": [
+				{
+					"name": "Get Market Overview",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{api_url}}/market",
+							"host": [
+								"{{api_url}}"
+							],
+							"path": [
+								"market"
+							]
+						},
+						"description": "Mendapatkan statistik umum lowongan kerja IT (Publik)."
+					},
+					"response": []
+				},
+				{
+					"name": "List Jobs",
+					"request": {
+						"method": "GET",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{auth_token}}"
+							}
+						],
+						"url": {
+							"raw": "{{api_url}}/market/jobs",
+							"host": [
+								"{{api_url}}"
+							],
+							"path": [
+								"market",
+								"jobs"
+							]
+						},
+						"description": "Mendapatkan daftar seluruh lowongan pekerjaan (terautentikasi)."
+					},
+					"response": []
+				},
+				{
+					"name": "Search Jobs",
+					"request": {
+						"method": "GET",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{auth_token}}"
+							}
+						],
+						"url": {
+							"raw": "{{api_url}}/market/jobs/search?q=Node",
+							"host": [
+								"{{api_url}}"
+							],
+							"path": [
+								"market",
+								"jobs",
+								"search"
+							],
+							"query": [
+								{
+									"key": "q",
+									"value": "Node"
+								}
+							]
+						},
+						"description": "Mencari pekerjaan berdasarkan query keyword."
+					},
+					"response": []
+				},
+				{
+					"name": "Get Job Details by ID",
+					"request": {
+						"method": "GET",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{auth_token}}"
+							}
+						],
+						"url": {
+							"raw": "{{api_url}}/market/jobs/{{job_id}}",
+							"host": [
+								"{{api_url}}"
+							],
+							"path": [
+								"market",
+								"jobs",
+								"{{job_id}}"
+							]
+						},
+						"description": "Mendapatkan info detail lowongan pekerjaan tertentu."
+					},
+					"response": []
+				},
+				{
+					"name": "Get Trend Domains (Proxy AI)",
+					"request": {
+						"method": "GET",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{auth_token}}"
+							}
+						],
+						"url": {
+							"raw": "{{api_url}}/market/trend/domains",
+							"host": [
+								"{{api_url}}"
+							],
+							"path": [
+								"market",
+								"trend",
+								"domains"
+							]
+						},
+						"description": "Mendapatkan daftar domain IT yang didukung sistem peramalan tren."
+					},
+					"response": []
+				},
+				{
+					"name": "Get Trend Forecast (Proxy AI)",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{auth_token}}"
+							},
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"domain\": \"Data Science & AI\",\n  \"n_months\": 6\n}"
+						},
+						"url": {
+							"raw": "{{api_url}}/market/trend/forecast",
+							"host": [
+								"{{api_url}}"
+							],
+							"path": [
+								"market",
+								"trend",
+								"forecast"
+							]
+						},
+						"description": "Mendapatkan peramalan tren lowongan kerja IT beberapa bulan ke depan."
+					},
+					"response": []
+				}
+			]
+		},
+		{
+			"name": "10. Support Form",
+			"description": "Formulir pengaduan dukungan teknis user.",
+			"item": [
+				{
+					"name": "Contact Support",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{auth_token}}"
+							},
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"name\": \"NeoKarir Tester\",\n  \"email\": \"{{email}}\",\n  \"category\": \"technical\",\n  \"message\": \"Halo Tim NeoKarir, saya ingin menanyakan mengenai performa chatbot RAG yang terkadang mengalami delay.\"\n}"
+						},
+						"url": {
+							"raw": "{{api_url}}/support/contact",
+							"host": [
+								"{{api_url}}"
+							],
+							"path": [
+								"support",
+								"contact"
+							]
+						},
+						"description": "Mengirim tiket/pesan dukungan teknis."
+					},
+					"response": []
+				}
+			]
+		},
+		{
+			"name": "11. Direct AI Service 1 (FastAPI 8000)",
+			"description": "Endpoint langsung menuju microservice AI 1 (CV parsing, onboarding, NER).",
+			"item": [
+				{
+					"name": "Onboarding Auto Profiling",
+					"request": {
+						"method": "POST",
+						"header": [],
+						"body": {
+							"mode": "formdata",
+							"formdata": [
+								{
+									"key": "cv_file",
+									"type": "file",
+									"src": [],
+									"description": "Unggah berkas CV PDF di sini"
+								},
+								{
+									"key": "user_id",
+									"value": "00000000-0000-0000-0000-000000000000",
+									"type": "text",
+									"description": "UUID user"
+								}
+							]
+						},
+						"url": {
+							"raw": "{{ai_service_1_url}}/api/v1/onboarding/auto-profiling",
+							"host": [
+								"{{ai_service_1_url}}"
+							],
+							"path": [
+								"api",
+								"v1",
+								"onboarding",
+								"auto-profiling"
+							]
+						},
+						"description": "Mengekstrak berkas PDF mentah menjadi representasi JSON profil karir."
+					},
+					"response": []
+				},
+				{
+					"name": "Save Confirmed Profile",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"user_id\": \"00000000-0000-0000-0000-000000000000\",\n  \"career_goal\": \"Menjadi Backend Engineer dengan spesialisasi cloud\",\n  \"target_domain\": \"Software Development\",\n  \"target_role\": \"Backend Engineer\",\n  \"owned_skills\": [\"Node.js\", \"Express\", \"SQL\", \"Docker\"],\n  \"user_experience\": \"1-3 tahun\",\n  \"user_education\": \"S1\",\n  \"metadata\": {}\n}"
+						},
+						"url": {
+							"raw": "{{ai_service_1_url}}/api/v1/onboarding/save-profile",
+							"host": [
+								"{{ai_service_1_url}}"
+							],
+							"path": [
+								"api",
+								"v1",
+								"onboarding",
+								"save-profile"
+							]
+						},
+						"description": "Menyimpan secara permanen hasil edit/konfirmasi user atas representasi JSON profil karir."
+					},
+					"response": []
+				},
+				{
+					"name": "Direct NER Analyze CV",
+					"request": {
+						"method": "POST",
+						"header": [],
+						"body": {
+							"mode": "formdata",
+							"formdata": [
+								{
+									"key": "file",
+									"type": "file",
+									"src": [],
+									"description": "CV PDF file"
+								}
+							]
+						},
+						"url": {
+							"raw": "{{ai_service_1_url}}/api/v1/cv-analyzer/analyze",
+							"host": [
+								"{{ai_service_1_url}}"
+							],
+							"path": [
+								"api",
+								"v1",
+								"cv-analyzer",
+								"analyze"
+							]
+						},
+						"description": "Melakukan analisis NER RoBERTa dan Groq secara langsung."
+					},
+					"response": []
+				}
+			]
+		},
+		{
+			"name": "12. Direct AI Service 2 (FastAPI 8001)",
+			"description": "Endpoint langsung menuju microservice AI 2 (Scoring, Skill Gap, Roadmap, Trend).",
+			"item": [
+				{
+					"name": "Get Dynamic Recommendation",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"user_id\": \"00000000-0000-0000-0000-000000000000\",\n  \"career_goal\": \"Menjadi Web Developer\",\n  \"target_domain\": \"Web Development\",\n  \"target_role\": \"Frontend Web Developer\",\n  \"owned_skills\": [\"HTML\", \"CSS\", \"JavaScript\", \"React\"],\n  \"user_experience\": \"1-3 tahun\",\n  \"user_education\": \"S1\",\n  \"metadata\": {}\n}"
+						},
+						"url": {
+							"raw": "{{ai_service_2_url}}/api/recommendation/dynamic",
+							"host": [
+								"{{ai_service_2_url}}"
+							],
+							"path": [
+								"api",
+								"recommendation",
+								"dynamic"
+							]
+						},
+						"description": "Menghasilkan rekomendasi lowongan pekerjaan yang relevan (Top-N)."
+					},
+					"response": []
+				},
+				{
+					"name": "Calculate Profile Score",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"target_domain\": \"Web Development\",\n  \"target_role\": \"Frontend Web Developer\",\n  \"owned_skills\": [\"HTML\", \"CSS\", \"JavaScript\", \"React\"]\n}"
+						},
+						"url": {
+							"raw": "{{ai_service_2_url}}/api/profile/score",
+							"host": [
+								"{{ai_service_2_url}}"
+							],
+							"path": [
+								"api",
+								"profile",
+								"score"
+							]
+						},
+						"description": "Menghitung tingkat kecocokan profil terhadap target domain dan target role."
+					},
+					"response": []
+				},
+				{
+					"name": "Calculate Skill Gap",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"target_domain\": \"Web Development\",\n  \"target_role\": \"Frontend Web Developer\",\n  \"owned_skills\": [\"HTML\", \"CSS\", \"JavaScript\", \"React\"],\n  \"user_experience\": \"1-3 tahun\",\n  \"user_education\": \"S1\",\n  \"current_role\": \"Junior Web Developer\"\n}"
+						},
+						"url": {
+							"raw": "{{ai_service_2_url}}/api/profile/skill-gap",
+							"host": [
+								"{{ai_service_2_url}}"
+							],
+							"path": [
+								"api",
+								"profile",
+								"skill-gap"
+							]
+						},
+						"description": "Menganalisis kesenjangan skill (skill gap) dan merekomendasikan skill pelengkap."
+					},
+					"response": []
+				},
+				{
+					"name": "Get Specific Job Roadmap",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{ai_service_2_url}}/api/roadmap/job-sync/{{job_id}}",
+							"host": [
+								"{{ai_service_2_url}}"
+							],
+							"path": [
+								"api",
+								"roadmap",
+								"job-sync",
+								"{{job_id}}"
+							]
+						},
+						"description": "Mendapatkan kurikulum/peta jalan belajar untuk menutup kesenjangan pada ID lowongan tertentu."
+					},
+					"response": []
+				},
+				{
+					"name": "Get Forecasting Domains",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{ai_service_2_url}}/api/trend/domains",
+							"host": [
+								"{{ai_service_2_url}}"
+							],
+							"path": [
+								"api",
+								"trend",
+								"domains"
+							]
+						},
+						"description": "Mengambil seluruh kategori domain industri IT yang didukung forecasting."
+					},
+					"response": []
+				},
+				{
+					"name": "Predict Job Trend Forecast",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"domain\": \"Web Development\",\n  \"n_months\": 6\n}"
+						},
+						"url": {
+							"raw": "{{ai_service_2_url}}/api/trend/forecast",
+							"host": [
+								"{{ai_service_2_url}}"
+							],
+							"path": [
+								"api",
+								"trend",
+								"forecast"
+							]
+						},
+						"description": "Menghitung prakiraan pertumbuhan/kebutuhan lowongan domain IT untuk n_months ke depan."
+					},
+					"response": []
+				}
+			]
+		}
+	]
+}

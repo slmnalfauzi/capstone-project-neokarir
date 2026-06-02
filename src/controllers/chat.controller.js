@@ -17,8 +17,26 @@ const sendMessage = asyncHandler(async (req, res) => {
 	return ApiResponse.success(res, { chat }, 'Message sent and processed');
 });
 
+const updateChatTitle = asyncHandler(async (req, res) => {
+	const { title } = req.body;
+	if (!title) {
+		const err = new Error('Title is required');
+		err.statusCode = 400;
+		throw err;
+	}
+	const chat = await ChatService.updateTitle(req.user.id, req.params.chatId, title, req.accessToken);
+	return ApiResponse.success(res, { chat }, 'Chat title updated');
+});
+
+const deleteChat = asyncHandler(async (req, res) => {
+	await ChatService.deleteChat(req.user.id, req.params.chatId, req.accessToken);
+	return ApiResponse.success(res, null, 'Chat deleted successfully');
+});
+
 module.exports = {
 	listChats,
 	createChat,
 	sendMessage,
+	updateChatTitle,
+	deleteChat,
 };

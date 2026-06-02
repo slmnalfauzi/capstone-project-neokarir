@@ -59,8 +59,8 @@ const getProfileScore = async (userId, accessToken) => {
 		(profile.skills_summary ? profile.skills_summary.split(',').map(s => s.trim()).filter(Boolean) : []);
 
 	const payload = {
-		target_domain: profile.target_domain || '',
-		target_role: profile.target_role || '',
+		target_domain: profile.target_domain || profile.profile_data?.target_domain || '',
+		target_role: profile.target_role || profile.profile_data?.target_role || '',
 		owned_skills,
 	};
 
@@ -83,7 +83,7 @@ const uploadAvatarByUserId = async (userId, file, accessToken) => {
 	let fileBuffer;
 	try {
 		fileBuffer = file.buffer ? file.buffer : fs.readFileSync(file.path);
-	} catch (err) {
+	} catch (_err) {
 		throw new AppError(ERROR_CODES.VALIDATION_ERROR, 'Gagal membaca file foto profil', 400);
 	}
 
@@ -119,7 +119,7 @@ const uploadAvatarByUserId = async (userId, file, accessToken) => {
 		if (file.path) {
 			try {
 				fs.unlinkSync(file.path);
-			} catch (e) {
+			} catch (_e) {
 				// ignore
 			}
 		}

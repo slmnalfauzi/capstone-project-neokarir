@@ -1,0 +1,57 @@
+{
+	"id": "e6a0d24c-ea7f-4428-b0a3-3883a45a2789",
+	"name": "NeoKarir Local Environment",
+	"values": [
+		{
+			"key": "api_url",
+			"value": "http://localhost:3000/api/v1",
+			"type": "default",
+			"enabled": true
+		},
+		{
+			"key": "ai_service_1_url",
+			"value": "http://localhost:8000",
+			"type": "default",
+			"enabled": true
+		},
+		{
+			"key": "ai_service_2_url",
+			"value": "http://localhost:8001",
+			"type": "default",
+			"enabled": true
+		},
+		{
+			"key": "email",
+			"value": "test@neokarir.com",
+			"type": "default",
+			"enabled": true
+		},
+		{
+			"key": "password",
+			"value": "Password123!",
+			"type": "default",
+			"enabled": true
+		},
+		{
+			"key": "auth_token",
+			"value": "",
+			"type": "default",
+			"enabled": true
+		},
+		{
+			"key": "chat_id",
+			"value": "",
+			"type": "default",
+			"enabled": true
+		},
+		{
+			"key": "job_id",
+			"value": "e0a7243c-6232-4752-9cc8-5e82f7c00e12",
+			"type": "default",
+			"enabled": true
+		}
+	],
+	"_postman_variable_scope": "environment",
+	"_postman_exported_at": "2026-06-01T12:00:00.000Z",
+	"_postman_exported_using": "Postman/10.0.0"
+}

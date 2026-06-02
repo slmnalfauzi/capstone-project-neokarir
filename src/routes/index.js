@@ -8,6 +8,7 @@ const marketRoutes = require('./market.routes');
 const profileRoutes = require('./profile.routes');
 const recommendationRoutes = require('./recommendation.routes');
 const skillgapRoutes = require('./skillgap.routes');
+const supportRoutes = require('./support.routes');
 
 const router = express.Router();
 
@@ -19,5 +20,6 @@ router.use('/jobmatch', jobmatchRoutes);
 router.use('/skillgap', skillgapRoutes);
 router.use('/chat', chatRoutes);
 router.use('/market', marketRoutes);
+router.use('/support', supportRoutes);
 
 module.exports = router;

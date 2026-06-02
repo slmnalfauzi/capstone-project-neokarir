@@ -13,6 +13,7 @@ module.exports = {
   SUPABASE_JWT_SECRET: process.env.SUPABASE_JWT_SECRET,
   DATABASE_URL: process.env.DATABASE_URL,
   CV_STORAGE_BUCKET: process.env.CV_STORAGE_BUCKET || 'cv-files',
+  FRONTEND_URL: process.env.FRONTEND_URL || process.env.CORS_ORIGIN || 'http://localhost:3001',
 
   // AI Model
   AI_MODEL_URL: process.env.AI_MODEL_URL || 'http://localhost:5000',
@@ -29,4 +30,10 @@ module.exports = {
 
   // Logging
   LOG_LEVEL: process.env.LOG_LEVEL || 'info',
+
+  // SMTP Configuration
+  SMTP_HOST: process.env.SMTP_HOST || 'smtp.gmail.com',
+  SMTP_PORT: process.env.SMTP_PORT || 587,
+  SMTP_USER: process.env.SMTP_USER,
+  SMTP_PASS: process.env.SMTP_PASS,
 };

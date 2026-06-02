@@ -34,6 +34,7 @@ const isUuid = (str) => {
 };
 
 const getById = async (id, accessToken) => {
+  console.log('getById called with:', { id, isUuid: isUuid(id) });
   if (!isUuid(id)) return null;
   const supabase = getSupabaseClient(accessToken);
   const { data, error } = await supabase
@@ -41,6 +42,7 @@ const getById = async (id, accessToken) => {
     .select('*')
     .eq('id', id)
     .maybeSingle();
+  console.log('getById result:', { data, error });
   if (error) throw new AppError(ERROR_CODES.DATABASE_ERROR, error.message, 500, error);
   return data;
 };
@@ -63,9 +65,40 @@ const updateMessages = async (id, messages, chatData = {}, accessToken) => {
   return data;
 };
 
+const updateTitle = async (id, userId, title, accessToken) => {
+  if (!isUuid(id)) return null;
+  const supabase = getSupabaseClient(accessToken);
+  const { data, error } = await supabase
+    .from(TABLE)
+    .update({ 
+      title, 
+      updated_at: new Date().toISOString()
+    })
+    .eq('id', id)
+    .eq('user_id', userId)
+    .select('*')
+    .maybeSingle();
+  if (error) throw new AppError(ERROR_CODES.DATABASE_ERROR, error.message, 500, error);
+  return data;
+};
+
+const deleteChat = async (id, userId, accessToken) => {
+  if (!isUuid(id)) return false;
+  const supabase = getSupabaseClient(accessToken);
+  const { error } = await supabase
+    .from(TABLE)
+    .delete()
+    .eq('id', id)
+    .eq('user_id', userId);
+  if (error) throw new AppError(ERROR_CODES.DATABASE_ERROR, error.message, 500, error);
+  return true;
+};
+
 module.exports = {
   listByUserId,
   create,
   getById,
   updateMessages,
+  updateTitle,
+  deleteChat,
 };

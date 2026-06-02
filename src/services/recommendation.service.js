@@ -26,8 +26,8 @@ const generate = async (userId, accessToken) => {
 	const userEducation = profile.profile_data?.user_education || 'Tidak Disebutkan';
 
 	const payload = {
-		target_domain: profile.target_domain || '',
-		target_role: profile.target_role || '',
+		target_domain: profile.target_domain || profile.profile_data?.target_domain || '',
+		target_role: profile.target_role || profile.profile_data?.target_role || '',
 		owned_skills: ownedSkills,
 		user_experience: userExperience,
 		user_education: userEducation,
@@ -112,7 +112,7 @@ const getRoadmap = async (jobId) => {
 			if (Array.isArray(level.items)) {
 				level.items.forEach((item, idx) => {
 					flatCourses.push({
-						id: `${level.level_key}-${idx}`,
+						id: `${jobId}-${level.level_key}-${idx}`,
 						skill: item.skill,
 						judul: item.judul_materi,
 						platform: item.provider,

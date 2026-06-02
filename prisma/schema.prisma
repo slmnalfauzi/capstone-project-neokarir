@@ -46,6 +46,7 @@ model Profile {
   summary           String?
   current_role      String?
   target_role       String?
+  target_domain      String?
   years_experience  Decimal? @db.Decimal(4, 1)
   location          String?
   phone             String?

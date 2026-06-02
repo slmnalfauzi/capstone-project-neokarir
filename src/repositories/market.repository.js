@@ -51,7 +51,7 @@ const getHistoricalTrends = async () => {
           const finalObj = typeof parsed === 'string' ? JSON.parse(parsed) : parsed;
           return finalObj.is_forecast === true;
         }
-      } catch (e) {
+      } catch (_e) {
         return false;
       }
     }
