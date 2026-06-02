@@ -23,14 +23,15 @@ embedding_model = SentenceTransformer('all-MiniLM-L6-v2')
 # Global State
 # ==========================================
 _llm_client = None
-_is_llm_ready: bool = False
+_is_llm_ready = False
+_active_api_key = None
 
 # ==========================================
 # 1. INIT & LLM CLIENT LOADING
 # ==========================================
 def load_llm_client() -> None:
     """Menginisialisasi koneksi ke Groq API saat server startup"""
-    global _llm_client, _is_llm_ready
+    global _llm_client, _is_llm_ready, _active_api_key
     try:
         api_key = os.getenv("GROQ_API_KEY")
         if not api_key:
@@ -42,7 +43,7 @@ def load_llm_client() -> None:
             api_key=api_key,
             base_url="https://api.groq.com/openai/v1"
         )
-        
+        _active_api_key = api_key
         _is_llm_ready = True
         logger.info("✅ Groq LLM Client berhasil diinisialisasi.")
         
@@ -64,9 +65,31 @@ def get_llm_client() -> AsyncOpenAI:
     """
     Fungsi aman untuk mengambil instance LLM Client.
     Gunakan fungsi ini di router/service lain saat butuh melakukan request ke Groq.
+    Secara dinamis memuat ulang jika API key berubah.
     """
-    if not _is_llm_ready or _llm_client is None:
-        raise RuntimeError("LLM Client belum siap. Pastikan load_llm_client() sudah dipanggil saat startup.")
+    global _llm_client, _is_llm_ready, _active_api_key
+    
+    # Muat ulang .env untuk mendeteksi perubahan kunci secara dinamis
+    try:
+        current_dir = os.path.dirname(os.path.abspath(__file__))
+        env_path = os.path.abspath(os.path.join(current_dir, "..", "..", "..", ".env"))
+        load_dotenv(env_path, override=True)
+    except Exception as e:
+        logger.warning(f"Gagal memuat ulang .env: {e}")
+        
+    api_key = os.getenv("GROQ_API_KEY")
+    
+    if not _is_llm_ready or _llm_client is None or _active_api_key != api_key:
+        logger.info("Inisialisasi/Pembaruan dinamis untuk Groq LLM Client...")
+        if not api_key:
+            raise RuntimeError("GROQ_API_KEY tidak ditemukan setelah dimuat ulang.")
+        _llm_client = AsyncOpenAI(
+            api_key=api_key,
+            base_url="https://api.groq.com/openai/v1"
+        )
+        _active_api_key = api_key
+        _is_llm_ready = True
+        
     return _llm_client
 
 DB_DSN = os.getenv("DATABASE_URL", "postgresql://postgres:zaza121104@localhost:5433/postgres")
@@ -142,7 +165,7 @@ async def generate_chatbot_response(user_id: str, message: str) -> dict:
         user_data = await get_user_mock(user_id)
         job_data = await get_job_mock()
         match_result = calculate_single_job_match(user_data, job_data)
-        context_data = f"Fakta Sistem: Kecocokan {match_result['match_percentage']}%. Skill kurang: {', '.join(match_result['missing_skills'])}."
+        context_data = f"Fakta Sistem: Kecocokan {match_result['match_percentage']}%. Skill kurang: {', '.join(match_result['skill_match_details']['missing'])}."
 
     elif intent in ["tanya_roadmap_karir", "tanya_tips_rekrutmen"]:
         system_prompt += " Jawab pertanyaan HANYA berdasarkan Fakta Referensi berikut."

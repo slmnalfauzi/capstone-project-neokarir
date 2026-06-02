@@ -30,7 +30,8 @@ class IntentClassifier:
 
     def _load_model(self):
         """Memuat Tokenizer dan Model XLM-RoBERTa langsung dari Hugging Face Hub"""
-        print(f"⏳ Mengunduh/Memuat XLM-RoBERTa Intent Classifier dari {self.repo_id} ke {self.device.type.upper()}...")
+        print(f"Mengunduh/Memuat XLM-RoBERTa Intent Classifier dari {self.repo_id} ke {self.device.type.upper()}...")
+        self.use_fallback_classifier = False
         
         try:
             # transformers otomatis mengunduh (atau mengambil dari cache) berdasarkan repo_id
@@ -45,16 +46,56 @@ class IntentClassifier:
             else:
                 self.labels = self.fallback_labels
                 
-            print(f"✅ XLM-RoBERTa loaded successfully from HF! Registered {len(self.labels)} intents.")
+            print(f"XLM-RoBERTa loaded successfully from HF! Registered {len(self.labels)} intents.")
             
         except Exception as e:
-            print(f"❌ Gagal memuat model dari awan: {str(e)}")
-            raise e
+            print(f"⚠️ Gagal memuat model dari awan: {str(e)}")
+            print("⚠️ Mengaktifkan Rule-Based Keyword Classifier karena memori/koneksi terganggu...")
+            self.use_fallback_classifier = True
+            self.labels = self.fallback_labels
+
+    def _predict_rule_based(self, user_text: str) -> dict:
+        text = user_text.lower()
+        
+        # 1. Check roadmap
+        if any(w in text for w in ["roadmap", "kurikulum", "belajar", "langkah", "panduan", "cara menjadi"]):
+            return {"intent": "tanya_roadmap_karir", "confidence": 0.99, "is_fallback": False, "reason": "Rule-based"}
+            
+        # 2. Check tips rekrutmen / CV
+        if any(w in text for w in ["rekrut", "tips", "cv", "resume", "interview", "wawancara", "negosiasi", "gaji"]):
+            return {"intent": "tanya_tips_rekrutmen", "confidence": 0.99, "is_fallback": False, "reason": "Rule-based"}
+            
+        # 3. Check salam sapaan
+        if any(w in text for w in ["hai", "halo", "hallo", "selamat pagi", "selamat siang", "selamat sore", "selamat malam", "assalamualaikum"]):
+            return {"intent": "salam_sapaan", "confidence": 0.99, "is_fallback": False, "reason": "Rule-based"}
+            
+        # 4. Check cari lowongan
+        if any(w in text for w in ["loker", "lowongan", "kerja", "cari pekerjaan", "dapatkan pekerjaan"]):
+            return {"intent": "cari_lowongan", "confidence": 0.99, "is_fallback": False, "reason": "Rule-based"}
+            
+        # 5. Check analisis skill gap
+        if any(w in text for w in ["skill gap", "analisis skill", "kekurangan skill", "skill saya"]):
+            return {"intent": "analisis_skill_gap", "confidence": 0.99, "is_fallback": False, "reason": "Rule-based"}
+            
+        # 6. Check bantuan fitur aplikasi
+        if any(w in text for w in ["fitur", "bantuan", "aplikasi", "neokarir", "bisa apa"]):
+            return {"intent": "bantuan_fitur_aplikasi", "confidence": 0.99, "is_fallback": False, "reason": "Rule-based"}
+            
+        # Fallback
+        return {
+            "intent": "out_of_context",
+            "confidence": 0.0,
+            "is_fallback": True,
+            "reason": "Rule-based fallback"
+        }
 
     def predict(self, user_text: str) -> dict:
         """Melakukan inferensi pada teks pengguna."""
         if not user_text.strip():
             return self._build_fallback_response(0.0, "Input teks kosong.")
+
+        if getattr(self, "use_fallback_classifier", False):
+            return self._predict_rule_based(user_text)
 
         # 1. Preprocessing & Tokenisasi
         inputs = self.tokenizer(

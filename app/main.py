@@ -17,7 +17,7 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
 # Import semua router yang sudah kita definisikan
-from app.routers import onboarding, chatbot, job_match, cv_analyzer
+from app.routers import onboarding, chatbot, job_match, cv_analyzer, trend
 # Import semua service untuk pre-loading model
 from app.ai_engine.services import cv_service, match_service, chatbot_service
 
@@ -169,6 +169,7 @@ app.include_router(onboarding.router, prefix="/api/v1/onboarding", tags=["Onboar
 app.include_router(cv_analyzer.router, prefix="/api/v1/cv-analyzer", tags=["CV Analyzer"])
 app.include_router(job_match.router, prefix="/api/v1/job-market", tags=["Job match di job market"])
 app.include_router(chatbot.router, prefix="/api/v1/chat", tags=["AI Career Chat Assistant"])
+app.include_router(trend.router, prefix="/api/trend", tags=["IT Job Trend Forecasting"])
 
 
 # ==============================================================================
@@ -202,3 +203,4 @@ async def health_check():
             "chatbot_rag": chatbot_service.is_llm_ready(),
         },
     }
+

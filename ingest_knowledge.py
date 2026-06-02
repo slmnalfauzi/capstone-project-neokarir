@@ -8,8 +8,11 @@ from sentence_transformers import SentenceTransformer
 # Ganti dengan nama folder tempat kamu menaruh 26 file .txt
 KNOWLEDGE_FOLDER = "Knowledge Base/Knowledge_Base_RAG" 
 
-# URL database PostgreSQL kamu
-DATABASE_URL = "postgresql://postgres:zaza121104@localhost:5433/postgres"
+from dotenv import load_dotenv
+import os
+
+load_dotenv()
+DATABASE_URL = os.getenv("DATABASE_URL", "postgresql://postgres:zaza121104@localhost:5433/postgres")
 
 # Load model embedding (Ringan, tidak butuh GPU besar)
 print("⏳ Loading Embedding Model (all-MiniLM-L6-v2)...")
